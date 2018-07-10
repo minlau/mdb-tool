@@ -1,0 +1,30 @@
+[
+  {
+    "hostname": "localhost",
+    "port": 5432,
+    "name": "company1",
+    "username": "postgres",
+    "password": "admin"
+  },
+  {
+    "hostname": "localhost",
+    "port": 5432,
+    "name": "company2",
+    "username": "postgres",
+    "password": "admin"
+  },
+  {
+    "hostname": "localhost",
+    "port": 5432,
+    "name": "company3",
+    "username": "postgres",
+    "password": "admin"
+  },
+  {
+    "hostname": "localhost",
+    "port": 5432,
+    "name": "company4",
+    "username": "postgres",
+    "password": "admin"
+  }
+]

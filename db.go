@@ -3,169 +3,111 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"sync"
-	"time"
-
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
+	_ "github.com/lib/pq"
+	_ "github.com/nakagami/firebirdsql"
 	"github.com/pkg/errors"
+	"os"
 )
 
-type CompanyDatabase struct {
-	CompanyID  int       `db:"company_id"`
-	CreateDate time.Time `db:"create_date"`
-	ModifyDate time.Time `db:"modify_date"`
-	ID         int       `db:"id"`
-	DbCfg
+type GroupQueryResult struct {
+	GroupId int                      `json:"groupId"`
+	Data    []map[string]interface{} `json:"data"`
+	Error   error                    `json:"error"`
 }
 
-type DbInstance struct {
-	Id  int
-	Cfg DbCfg
-	Db  *sqlx.DB
+type DatabaseInstance struct {
+	Config DatabaseConfig
+	DB     *sqlx.DB
 }
 
-type DbCfg struct {
-	Hostname string `db:"db_host"`
-	Port     int    `db:"db_port"`
-	Name     string `db:"db_name"`
-	Username string `db:"db_username"`
-	Password string `db:"db_password"`
-	Type     int    `db:"db_type"`
+type DatabaseConfig struct {
+	DatabaseDescription
+	DatabaseConnConfig
 }
 
-type CompanyData struct {
-	CompanyId int
-	Data      []map[string]interface{}
+type DatabaseDescription struct {
+	Title string `json:"title"`
+	DatabaseGroup
 }
 
-var databases = make(map[int]DbInstance)
-var maxId = 0
+type DatabaseGroup struct {
+	GroupId   int    `json:"groupId"`
+	GroupType string `json:"groupType"`
+}
 
-func initDatabasesFromDb() {
-	coreDb, err := sqlx.Connect("postgres",
+type DatabaseConnConfig struct {
+	Hostname string `db:"hostname"`
+	Port     int    `db:"port"`
+	Name     string `db:"name"`
+	Username string `db:"username"`
+	Password string `db:"password"`
+	Type     string `db:"type"`
+}
+
+func (c DatabaseConnConfig) getConnectionUrl() (string, error) {
+	switch c.Type {
+	case "postgresql":
+		return fmt.Sprintf("user=%s password=%s host=%s port=%d dbname=%s sslmode=disable",
+			c.Username, c.Password, c.Hostname, c.Port, c.Name), nil
+	case "firebird":
+		return fmt.Sprintf("%s:%s@%s:%d/%s",
+			c.Username, c.Password, c.Hostname, c.Port, c.Name), nil
+	case "mysql":
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
+			c.Username, c.Password, c.Hostname, c.Port, c.Name), nil
+	default:
+		return "", errors.Errorf("unknown type: %s", c.Type)
+	}
+}
+
+func (c DatabaseConnConfig) getDriverName() (string, error) {
+	switch c.Type {
+	case "postgresql":
+		return "postgres", nil
+	case "firebird":
+		return "firebirdsql", nil
+	case "mysql":
+		return "mysql", nil
+	default:
+		return "", errors.Errorf("unknown type: %s", c.Type)
+	}
+}
+
+const DbSelect = "select company_id as groupId || '', db_host as hostname, db_port as port, db_name as name, " +
+	"db_username as username, db_password as password, " +
+	"case when (db_type == 0) then 'postgresql' else 'firebird' end as groupType " +
+	"from company_databases"
+
+func getDatabaseConfigsFromDb() ([]DatabaseConfig, error) {
+	db, err := sqlx.Connect("postgres",
 		"dbname=core user=postgres password=admin host=192.74.169.108 sslmode=disable")
 	if err != nil {
-		log.Error().Err(err).Msg("failed to connect to core db")
+		return nil, errors.Wrap(err, "failed to connect to db")
 	}
+	defer db.Close()
 
-	var databaseConfigs []CompanyDatabase
-	err = coreDb.Select(&databaseConfigs, "select * from company_databases where db_type=0")
+	var databaseConfigs []DatabaseConfig
+	err = db.Select(&databaseConfigs, DbSelect)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to select company databases")
+		return nil, errors.Wrap(err, "failed to select database configs")
 	}
-
-	for _, element := range databaseConfigs {
-		db := openDB(element.DbCfg)
-		if db != nil {
-			if _, ok := databases[element.CompanyID]; ok {
-				log.Error().Msg(fmt.Sprintf("database is already registered under id: %d", element.CompanyID))
-			} else {
-				if maxId < element.CompanyID {
-					maxId = element.CompanyID
-				}
-				databases[element.CompanyID] = DbInstance{
-					element.CompanyID,
-					element.DbCfg,
-					db,
-				}
-			}
-		}
-	}
-	log.Debug().Msg("Finished databases initialisation")
+	return databaseConfigs, nil
 }
 
-func initDatabasesFromJson() {
-	var databaseConfigs []DbCfg
+func getDatabaseConfigsFromFile(path string) ([]DatabaseConfig, error) {
+	var databaseConfigs []DatabaseConfig
 
-	configFile, err := os.Open("databases.json")
+	configFile, err := os.Open(path)
 	if err != nil {
-		log.Error().Err(err).Msg("opening file")
+		return nil, errors.Wrap(err, "failed to open file")
 	}
+	defer configFile.Close()
 
 	jsonParser := json.NewDecoder(configFile)
 	if err = jsonParser.Decode(&databaseConfigs); err != nil {
-		log.Error().Err(err).Msg("parsing file")
+		return nil, errors.Wrap(err, "failed to parse file")
 	}
-
-	for _, element := range databaseConfigs {
-		db := openDB(element)
-		if db != nil {
-			maxId++
-			databases[maxId] = DbInstance{
-				maxId,
-				element,
-				db,
-			}
-		} else {
-			log.Error().Err(err).Msg(fmt.Sprintf("failed to open db: %v", element))
-		}
-	}
-	log.Debug().Msg("Finished databases initialisation")
-}
-
-func openDB(config DbCfg) *sqlx.DB {
-	connectionUrl := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable host=%s port=%d",
-		config.Username, config.Password, config.Name, config.Hostname, config.Port)
-	db, err := sqlx.Connect("postgres", connectionUrl)
-	if err != nil {
-		log.Error().Err(err).Msg(fmt.Sprintf("failed to connect to '%s' db", config.Name))
-		return nil
-	}
-	return db
-}
-
-func queryDatabase(id int, query string) ([]map[string]interface{}, error) {
-	if db, ok := databases[id]; ok {
-		return queryToMap(db.Db, query), nil
-	} else {
-		return nil, errors.New(fmt.Sprintf("no database registered with id: %d", id))
-	}
-}
-
-func queryAllDatabases(query string) []CompanyData {
-	var data []CompanyData
-	var mutex = &sync.Mutex{}
-	c := make(chan int, len(databases))
-	for key, value := range databases {
-		go func(key int, value *sqlx.DB) {
-			res := queryToMap(value, query)
-			var companyData = CompanyData{
-				CompanyId: key,
-				Data:      res,
-			}
-			mutex.Lock()
-			data = append(data, companyData)
-			mutex.Unlock()
-			c <- key
-		}(key, value.Db)
-	}
-	for range databases {
-		<-c
-	}
-	return data
-}
-
-func queryToMap(db *sqlx.DB, query string) []map[string]interface{} {
-	var data []map[string]interface{}
-	rows, err := db.Queryx(query)
-	if err != nil {
-		log.Error().Err(err).Msgf("failed to execute query")
-
-		result := make(map[string]interface{})
-		result["error"] = err
-		return append(data, result)
-	}
-	for rows.Next() {
-		results := make(map[string]interface{})
-		err = rows.MapScan(results)
-		if err != nil {
-			log.Error().Err(err).Msgf("failed to scan data")
-			continue
-		}
-
-		data = append(data, results)
-	}
-	return data
+	return databaseConfigs, nil
 }

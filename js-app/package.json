@@ -1,0 +1,42 @@
+{
+  "name": "my-app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@blueprintjs/core": "^3.6.1",
+    "@blueprintjs/select": "^3.2.0",
+    "normalize.css": "^8.0.0",
+    "ag-grid": "^18.1.2",
+    "ag-grid-react": "^18.1.0",
+    "axios": "^0.18.0",
+    "react": "^16.4.2",
+    "react-dom": "^16.4.2",
+    "react-dom-factories": "^1.0.2"
+  },
+  "scripts": {
+    "build": "webpack --env production",
+    "start": "webpack --watch --env development"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-jest": "^23.4.2",
+    "babel-loader": "^7.1.4",
+    "babel-plugin-transform-async-to-generator": "^6.24.1",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-react": "^6.24.1",
+    "css-loader": "^0.28.11",
+    "html-webpack-plugin": "^3.2.0",
+    "mini-css-extract-plugin": "^0.4.1",
+    "optimize-css-assets-webpack-plugin": "^5.0.0",
+    "style-loader": "^0.22.1",
+    "uglifyjs-webpack-plugin": "^1.2.6",
+    "url-loader": "^1.1.1",
+    "file-loader": "^2.0.0",
+    "webpack": "^4.12.2",
+    "webpack-cli": "^3.0.8",
+    "webpack-merge": "^4.1.3"
+  }
+}

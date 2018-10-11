@@ -1,0 +1,23 @@
+.flex-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.flex-container-fill {
+    flex-grow: 1;
+    height: calc(100% - 100%); /*weird fix O.o*/
+}
+
+.c-children-spacing > * {
+    padding: 0 4px 4px 4px;
+}
+
+.c-children-spacing > *:first-child {
+    padding-top: 4px;
+}
+
+.c-query-elements > * {
+    float: left;
+    margin: 4px;
+}

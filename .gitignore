@@ -1,0 +1,5 @@
+# js dependencies
+/js-app/node_modules
+
+# js build
+/assets

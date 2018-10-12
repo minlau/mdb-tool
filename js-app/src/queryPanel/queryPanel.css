@@ -21,3 +21,8 @@
     float: left;
     margin: 4px;
 }
+
+.c-query-panel-spinner {
+    float: right;
+    padding-top: 3px;
+}

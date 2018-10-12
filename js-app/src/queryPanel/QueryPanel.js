@@ -1,5 +1,5 @@
 import React, {Component} from "react";
-import {Button, FormGroup, HTMLSelect, MenuItem, TextArea} from "@blueprintjs/core";
+import {Button, FormGroup, HTMLSelect, MenuItem, Spinner, TextArea} from "@blueprintjs/core";
 import {Select} from "@blueprintjs/select";
 import axios from "axios";
 import DataTable from "../dataTable/DataTable";
@@ -72,6 +72,7 @@ class QueryPanel extends Component {
             groupType: "",
             databases: [],
             database: null,
+            querying: false,
             query: "select now()",
             data: [],
             errors: []
@@ -159,6 +160,7 @@ class QueryPanel extends Component {
     }
 
     onQueryClick() {
+
         let groupId = null;
         let reqParams = {
             groupType: this.state.groupType,
@@ -173,6 +175,7 @@ class QueryPanel extends Component {
             reqParams.groupId = groupId;
         }
 
+        this.setState({querying: true});
 
         axios.get('/query', {params: reqParams})
             .then(response => {
@@ -203,14 +206,16 @@ class QueryPanel extends Component {
                                 }
                             });
                         }
-                        this.setState({data: data, errors: errors});
+                        this.setState({data: data, errors: errors, querying: false});
                     } else {
                         console.error("failed to query", response);
+                        this.setState({querying: false});
                         alert("failed to query");
                     }
                 },
                 error => {
                     console.error("failed to query", error);
+                    this.setState({querying: false});
                     alert("failed to query");
                 })
     }
@@ -314,10 +319,11 @@ class QueryPanel extends Component {
                             </Select>
                         </FormGroup>
                         <Button style={{float: 'right'}}
-                                disabled={(this.state.queryMode === 'single' && this.state.database === null) || this.state.query.length === 0}
+                                disabled={this.state.querying || (this.state.queryMode === 'single' && this.state.database === null) || this.state.query.length === 0}
                                 onClick={this.onQueryClick}
                                 icon="play"
                                 text="Query"/>
+                        {this.state.querying && <Spinner className="c-query-panel-spinner" size={Spinner.SIZE_SMALL}/>}
                         {containsError && errorButton}
                         {containsError && errorDialog}
                     </div>

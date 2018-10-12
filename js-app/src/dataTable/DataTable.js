@@ -8,7 +8,6 @@ class DataTable extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            data: props.data,
             columnDefs: [],
             rowData: []
         };

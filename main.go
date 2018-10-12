@@ -9,6 +9,7 @@ import (
 
 func main() {
 	configFilePath := flag.String("config", "databases.json", "databases config file path")
+	flag.Parse()
 
 	initLogger()
 	log.Debug().Msg("starting app")

@@ -769,15 +769,15 @@ acorn@^5.0.0, acorn@^5.6.2:
   version "5.7.3"
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-5.7.3.tgz#67aa231bf8812974b85235a96771eb6bd07ea279"
 
-ag-grid-react@^18.1.0:
-  version "18.1.0"
-  resolved "https://registry.yarnpkg.com/ag-grid-react/-/ag-grid-react-18.1.0.tgz#ecbdb14ebb8880dd233ab8956c08003f35f9e1e0"
+ag-grid-community@^19.0.0:
+  version "19.0.0"
+  resolved "https://registry.yarnpkg.com/ag-grid-community/-/ag-grid-community-19.0.0.tgz#b0909835c63bdeef54047bf27ab16a10fdf61ed0"
+
+ag-grid-react@^19.0.0:
+  version "19.0.0"
+  resolved "https://registry.yarnpkg.com/ag-grid-react/-/ag-grid-react-19.0.0.tgz#e8c7c3066111fb54944e3c829cc169a556d46144"
   dependencies:
     prop-types "15.6.0"
-
-ag-grid@^18.1.2:
-  version "18.1.2"
-  resolved "https://registry.yarnpkg.com/ag-grid/-/ag-grid-18.1.2.tgz#d98b3dd824b9cb82d9f638e4bab5a5771513869b"
 
 ajv-errors@^1.0.0:
   version "1.0.0"
@@ -1231,10 +1231,6 @@ coa@~2.0.1:
 code-point-at@^1.0.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/code-point-at/-/code-point-at-1.1.0.tgz#0d070b4d043a5bea33a2f1a40e2edb3d9a4ccf77"
-
-codemirror@^5.40.2:
-  version "5.40.2"
-  resolved "https://registry.yarnpkg.com/codemirror/-/codemirror-5.40.2.tgz#f4a41fee2d84e679543591b3680af259d903330b"
 
 collection-visit@^1.0.0:
   version "1.0.0"

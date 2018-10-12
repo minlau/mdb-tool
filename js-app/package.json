@@ -5,8 +5,8 @@
   "dependencies": {
     "@blueprintjs/core": "^3.7.0",
     "@blueprintjs/select": "^3.2.0",
-    "ag-grid": "^18.1.2",
-    "ag-grid-react": "^18.1.0",
+    "ag-grid-community": "^19.0.0",
+    "ag-grid-react": "^19.0.0",
     "axios": "^0.18.0",
     "normalize.css": "^8.0.0",
     "react": "^16.5.2",

@@ -160,31 +160,22 @@ class QueryPanel extends Component {
     }
 
     onQueryClick() {
+        this.setState({querying: true, errors: []});
 
-        let groupId = null;
+        let singleMode = this.state.queryMode === "single";
         let reqParams = {
+            groupId: (singleMode ? this.state.database.groupId : null),
             groupType: this.state.groupType,
             query: this.state.query
         };
-        if (this.state.queryMode === "single") {
-            if (this.state.database === null) {
-                console.error("selected database is null");
-                return;
-            }
-            groupId = this.state.database.groupId;
-            reqParams.groupId = groupId;
-        }
-
-        this.setState({querying: true});
 
         axios.get('/query', {params: reqParams})
             .then(response => {
                     if (response.status === 200) {
-                        console.log(response);
                         let data = [];
                         let errors = [];
 
-                        if (groupId !== null) {
+                        if (singleMode) {
                             if (response.data.error !== null) {
                                 let err = response.data.error;
                                 err.groupId = reqParams.groupId;
@@ -263,17 +254,9 @@ class QueryPanel extends Component {
     }
 
     render() {
-        const {query, data} = this.state;
+        const {query, data, querying} = this.state;
 
         const containsError = this.state.errors !== null && this.state.errors.length > 0;
-        const errorButton = <Button style={{float: 'right'}}
-                                    onClick={this.onErrorClick}
-                                    icon="error"
-                                    intent={"danger"}
-                                    text="Errors"/>;
-        const errorDialog = <QueryErrorDialog errors={this.state.errors}
-                                              key={1}
-                                              ref={this.refHandlers.errorDialog}/>;
 
         return (
             <div style={{height: '100vh'}} className="flex-container c-children-spacing">
@@ -323,9 +306,16 @@ class QueryPanel extends Component {
                                 onClick={this.onQueryClick}
                                 icon="play"
                                 text="Query"/>
-                        {this.state.querying && <Spinner className="c-query-panel-spinner" size={Spinner.SIZE_SMALL}/>}
-                        {containsError && errorButton}
-                        {containsError && errorDialog}
+                        {querying && <Spinner className="c-query-panel-spinner"
+                                              size={Spinner.SIZE_SMALL}/>}
+                        {containsError && <Button style={{float: 'right'}}
+                                                  onClick={this.onErrorClick}
+                                                  icon="error"
+                                                  intent={"danger"}
+                                                  text="Errors"/>}
+                        {containsError && <QueryErrorDialog errors={this.state.errors}
+                                                            key={1}
+                                                            ref={this.refHandlers.errorDialog}/>}
                     </div>
                 </div>
 

@@ -162,11 +162,12 @@ class QueryPanel extends Component {
     onQueryClick() {
         this.setState({querying: true, errors: []});
 
+        let selection = window.getSelection().toString().trim(); //easy way to get selected text
         let singleMode = this.state.queryMode === "single";
         let reqParams = {
             groupId: (singleMode ? this.state.database.groupId : null),
             groupType: this.state.groupType,
-            query: this.state.query
+            query: (selection.length === 0 ? this.state.query : selection)
         };
 
         axios.get('/query', {params: reqParams})

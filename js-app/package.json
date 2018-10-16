@@ -11,7 +11,9 @@
     "normalize.css": "^8.0.0",
     "react": "^16.5.2",
     "react-dom": "^16.5.2",
-    "react-dom-factories": "^1.0.2"
+    "react-dom-factories": "^1.0.2",
+    "react-codemirror2": "^5.1.0",
+    "codemirror": "^5.40.2"
   },
   "scripts": {
     "build": "webpack --env production",

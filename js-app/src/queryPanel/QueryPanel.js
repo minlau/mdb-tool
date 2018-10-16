@@ -1,10 +1,14 @@
 import React, {Component} from "react";
-import {Button, FormGroup, HTMLSelect, MenuItem, Spinner, TextArea} from "@blueprintjs/core";
+import {Button, FormGroup, HTMLSelect, MenuItem, Spinner} from "@blueprintjs/core";
 import {Select} from "@blueprintjs/select";
 import axios from "axios";
 import DataTable from "../dataTable/DataTable";
-import './queryPanel.css';
+import './QueryPanel.css';
 import QueryErrorDialog from "../queryErrorDialog/QueryErrorDialog";
+import {Controlled as CodeMirror} from 'react-codemirror2'
+import 'codemirror/lib/codemirror.css';
+import 'codemirror/theme/eclipse.css';
+import 'codemirror/mode/sql/sql.js';
 
 const highlightText = (text, query) => {
     let lastIndex = 0;
@@ -72,7 +76,7 @@ class QueryPanel extends Component {
             groupType: "",
             databases: [],
             database: null,
-            querying: false,
+            executingQuery: false,
             query: "select now()",
             data: [],
             errors: []
@@ -154,13 +158,14 @@ class QueryPanel extends Component {
                 disabled={modifiers.disabled || this.state.groupType !== item.groupType}
                 label={item.groupType}
                 onClick={handleClick}
+                key={`${item.groupId}.${item.groupType}`}
                 text={highlightText(text, query)}
             />
         );
     }
 
     onQueryClick() {
-        this.setState({querying: true, errors: []});
+        this.setState({executingQuery: true, errors: []});
 
         let selection = window.getSelection().toString().trim(); //easy way to get selected text
         let singleMode = this.state.queryMode === "single";
@@ -198,16 +203,16 @@ class QueryPanel extends Component {
                                 }
                             });
                         }
-                        this.setState({data: data, errors: errors, querying: false});
+                        this.setState({data: data, errors: errors, executingQuery: false});
                     } else {
                         console.error("failed to query", response);
-                        this.setState({querying: false});
+                        this.setState({executingQuery: false});
                         alert("failed to query");
                     }
                 },
                 error => {
                     console.error("failed to query", error);
-                    this.setState({querying: false});
+                    this.setState({executingQuery: false});
                     alert("failed to query");
                 })
     }
@@ -216,13 +221,12 @@ class QueryPanel extends Component {
         this.errorDialog.setState({isOpen: true});
     }
 
-    handleQueryTextChange(e) {
-        this.setState({query: e.target.value})
+    handleQueryTextChange(editor, data, value) {
+        this.setState({query: value})
     }
 
     onQueryModeChange(e) {
         this.setState({queryMode: e.target.value});
-
     }
 
     onViewModeChange(e) {
@@ -255,25 +259,27 @@ class QueryPanel extends Component {
     }
 
     render() {
-        const {query, data, querying} = this.state;
-
         const containsError = this.state.errors !== null && this.state.errors.length > 0;
+        const queryExecutionDisabled = this.state.executingQuery
+            || (this.state.queryMode === 'single' && this.state.database === null)
+            || this.state.query.length === 0;
 
         return (
             <div style={{height: '100vh'}} className="flex-container c-children-spacing">
-                <div style={{
-                    minHeight: '100px', maxHeight: '50%', height: '200px',
-                    resize: 'vertical', overflow: 'hidden'
-                }}>
-                    <TextArea
-                        style={{fontFamily: 'monospace', height: 'calc(100% - 30px - 4px)', resize: 'none'}}
-                        fill={true}
-                        placeholder="query"
-                        required={true}
-                        onChange={this.handleQueryTextChange}
-                        value={query}/>
+                <div className={'query-input-container'}>
+                    <CodeMirror
+                        className={'query-input'}
+                        value={this.state.query}
+                        options={{
+                            mode: 'text/x-sql',
+                            theme: 'eclipse',
+                            lineNumbers: true,
+                            scrollbarStyle: "native"
+                        }}
+                        onBeforeChange={this.handleQueryTextChange}
+                    />
 
-                    <div className="c-query-elements">
+                    <div className="query-control-elements">
                         <FormGroup inline={true} label="Query Mode">
                             <HTMLSelect value={this.state.queryMode}
                                         onChange={this.onQueryModeChange}
@@ -303,12 +309,12 @@ class QueryPanel extends Component {
                             </Select>
                         </FormGroup>
                         <Button style={{float: 'right'}}
-                                disabled={this.state.querying || (this.state.queryMode === 'single' && this.state.database === null) || this.state.query.length === 0}
+                                disabled={queryExecutionDisabled}
                                 onClick={this.onQueryClick}
                                 icon="play"
                                 text="Query"/>
-                        {querying && <Spinner className="c-query-panel-spinner"
-                                              size={Spinner.SIZE_SMALL}/>}
+                        {this.state.executingQuery && <Spinner className="query-panel-spinner"
+                                                               size={Spinner.SIZE_SMALL}/>}
                         {containsError && <Button style={{float: 'right'}}
                                                   onClick={this.onErrorClick}
                                                   icon="error"
@@ -320,8 +326,7 @@ class QueryPanel extends Component {
                     </div>
                 </div>
 
-                <DataTable data={data}/>
-
+                <DataTable data={this.state.data}/>
             </div>
         );
     }

@@ -17,12 +17,29 @@
     padding-top: 4px;
 }
 
-.c-query-elements > * {
+.query-control-elements > * {
     float: left;
     margin: 4px;
 }
 
-.c-query-panel-spinner {
+.query-panel-spinner {
     float: right;
     padding-top: 3px;
+}
+
+.query-input {
+    height: calc(100% - 30px - 4px);
+}
+
+.query-input .CodeMirror {
+    height: 100%;
+    border: solid 1px #ddd;
+}
+
+.query-input-container {
+    min-height: 100px;
+    max-height: 50%;
+    height: 200px;
+    resize: vertical;
+    overflow: hidden;
 }

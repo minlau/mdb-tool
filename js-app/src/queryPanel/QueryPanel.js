@@ -54,7 +54,8 @@ class QueryPanel extends Component {
 
         this.errorDialog = null;
         this.refHandlers = {
-            errorDialog: (ref) => this.errorDialog = ref
+            errorDialog: (ref) => this.errorDialog = ref,
+            codeMirror: (ref) => this.codeMirror = ref
         };
 
         this.initializeData = this.initializeData.bind(this);
@@ -167,7 +168,7 @@ class QueryPanel extends Component {
     onQueryClick() {
         this.setState({executingQuery: true, errors: []});
 
-        let selection = window.getSelection().toString().trim(); //easy way to get selected text
+        let selection = this.codeMirror.editor.display.input.textarea.value.trim();
         let singleMode = this.state.queryMode === "single";
         let reqParams = {
             groupId: (singleMode ? this.state.database.groupId : null),
@@ -277,6 +278,7 @@ class QueryPanel extends Component {
                             scrollbarStyle: "native"
                         }}
                         onBeforeChange={this.handleQueryTextChange}
+                        ref={this.refHandlers.codeMirror}
                     />
 
                     <div className="query-control-elements">
@@ -303,11 +305,14 @@ class QueryPanel extends Component {
                                     disabled={this.state.queryMode === "multiple"}>
                                 <Button
                                     icon={"database"}
-                                    text={this.state.database !== null ? this.state.database.groupId + ". " + this.state.database.title : "-"}
+                                    text={this.state.database !== null
+                                        ? this.state.database.groupId + ". " + this.state.database.title
+                                        : "-"}
                                     rightIcon="double-caret-vertical"
                                     disabled={this.state.queryMode === "multiple"}/>
                             </Select>
                         </FormGroup>
+
                         <Button style={{float: 'right'}}
                                 disabled={queryExecutionDisabled}
                                 onClick={this.onQueryClick}

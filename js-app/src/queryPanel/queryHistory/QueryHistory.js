@@ -42,6 +42,13 @@ class QueryHistory extends Component {
 
     addQuery(timestamp, queryMode, groupType, database, query) {
         let queries = this.state.queries;
+        if (queries.length > 0) {
+            let lastElement = queries[queries.length - 1];
+            if (lastElement.queryMode === queryMode && lastElement.groupType === groupType &&
+                lastElement.database === database && lastElement.query === query) {
+                return;
+            }
+        }
         queries.push({timestamp, queryMode, groupType, database, query});
         this.setState({queries: queries});
     }

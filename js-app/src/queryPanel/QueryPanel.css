@@ -22,21 +22,25 @@
     margin: 4px;
 }
 
+.query-control-elements-right {
+    float: right;
+}
+
 .query-panel-spinner {
     float: right;
     padding-top: 3px;
 }
 
-.query-input {
+.query-editor {
     height: calc(100% - 30px - 4px);
 }
 
-.query-input .CodeMirror {
+.query-editor .CodeMirror {
     height: 100%;
     border: solid 1px #ddd;
 }
 
-.query-input-container {
+.query-editor-container {
     min-height: 100px;
     max-height: 50%;
     height: 200px;

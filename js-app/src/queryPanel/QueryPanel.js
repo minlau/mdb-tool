@@ -2,48 +2,18 @@ import React, {Component} from "react";
 import {Button, FormGroup, HTMLSelect, MenuItem, Spinner} from "@blueprintjs/core";
 import {Select} from "@blueprintjs/select";
 import axios from "axios";
-import DataTable from "../dataTable/DataTable";
-import './QueryPanel.css';
-import QueryErrorDialog from "../queryErrorDialog/QueryErrorDialog";
+
 import {Controlled as CodeMirror} from 'react-codemirror2'
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/eclipse.css';
 import 'codemirror/mode/sql/sql.js';
 
-const highlightText = (text, query) => {
-    let lastIndex = 0;
-    const words = query
-        .split(/\s+/)
-        .filter(word => word.length > 0)
-        .map(escapeRegExpChars);
-    if (words.length === 0) {
-        return [text];
-    }
-    const regexp = new RegExp(words.join("|"), "gi");
-    const tokens = [];
-    while (true) {
-        const match = regexp.exec(text);
-        if (!match) {
-            break;
-        }
-        const length = match[0].length;
-        const before = text.slice(lastIndex, regexp.lastIndex - length);
-        if (before.length > 0) {
-            tokens.push(before);
-        }
-        lastIndex = regexp.lastIndex;
-        tokens.push(<strong key={lastIndex}>{match[0]}</strong>);
-    }
-    const rest = text.slice(lastIndex);
-    if (rest.length > 0) {
-        tokens.push(rest);
-    }
-    return tokens;
-};
+import DataTable from "../dataTable/DataTable";
+import QueryHistory from "./queryHistory/QueryHistory";
+import QueryErrorDialog from "../queryErrorDialog/QueryErrorDialog";
+import {highlightText} from "../util/select.js";
+import './QueryPanel.css';
 
-const escapeRegExpChars = (text) => {
-    return text.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
-};
 
 const queryModes = [{label: "Multiple", value: "multiple"}, {label: "Single", value: "single"}];
 
@@ -55,15 +25,15 @@ class QueryPanel extends Component {
         this.errorDialog = null;
         this.refHandlers = {
             errorDialog: (ref) => this.errorDialog = ref,
-            codeMirror: (ref) => this.codeMirror = ref
+            codeMirror: (ref) => this.codeMirror = ref,
+            queryHistory: (ref) => this.queryHistory = ref
         };
 
         this.initializeData = this.initializeData.bind(this);
         this.handleQueryTextChange = this.handleQueryTextChange.bind(this);
-        this.onQueryClick = this.onQueryClick.bind(this);
+        this.onExecuteClick = this.onExecuteClick.bind(this);
         this.onErrorClick = this.onErrorClick.bind(this);
 
-        this.onViewModeChange = this.onViewModeChange.bind(this);
         this.onQueryModeChange = this.onQueryModeChange.bind(this);
         this.onGroupTypeChange = this.onGroupTypeChange.bind(this);
 
@@ -71,7 +41,6 @@ class QueryPanel extends Component {
         this.selectItemRenderer = this.selectItemRenderer.bind(this);
 
         this.state = {
-            viewMode: "joined",
             queryMode: "multiple",
             groupTypes: [],
             groupType: "",
@@ -87,7 +56,7 @@ class QueryPanel extends Component {
     }
 
     static selectItemPredicate(query, item) {
-        return `${item.groupId}. ${item.title.toLowerCase()} ${item.groupType}`.indexOf(query.toLowerCase()) >= 0;
+        return `${item.groupId}. ${item.title} ${item.groupType}`.toLowerCase().indexOf(query.toLowerCase()) >= 0;
     }
 
     initializeData() {
@@ -165,16 +134,19 @@ class QueryPanel extends Component {
         );
     }
 
-    onQueryClick() {
+    onExecuteClick() {
         this.setState({executingQuery: true, errors: []});
 
-        let selection = this.codeMirror.editor.display.input.textarea.value.trim();
+        let selection = this.codeMirror.editor.getSelection().trim();
         let singleMode = this.state.queryMode === "single";
         let reqParams = {
             groupId: (singleMode ? this.state.database.groupId : null),
             groupType: this.state.groupType,
             query: (selection.length === 0 ? this.state.query : selection)
         };
+
+        this.queryHistory.addQuery(new Date(), this.state.queryMode, this.state.groupType, this.state.database,
+            reqParams.query);
 
         axios.get('/query', {params: reqParams})
             .then(response => {
@@ -206,15 +178,15 @@ class QueryPanel extends Component {
                         }
                         this.setState({data: data, errors: errors, executingQuery: false});
                     } else {
-                        console.error("failed to query", response);
+                        console.error("failed to execute query", response);
                         this.setState({executingQuery: false});
-                        alert("failed to query");
+                        alert("failed to execute query");
                     }
                 },
                 error => {
-                    console.error("failed to query", error);
+                    console.error("failed to execute query", error);
                     this.setState({executingQuery: false});
-                    alert("failed to query");
+                    alert("failed to execute query");
                 })
     }
 
@@ -228,10 +200,6 @@ class QueryPanel extends Component {
 
     onQueryModeChange(e) {
         this.setState({queryMode: e.target.value});
-    }
-
-    onViewModeChange(e) {
-        this.setState({viewMode: e.target.value});
     }
 
     onGroupTypeChange(event) {
@@ -267,9 +235,9 @@ class QueryPanel extends Component {
 
         return (
             <div style={{height: '100vh'}} className="flex-container c-children-spacing">
-                <div className={'query-input-container'}>
+                <div className={'query-editor-container'}>
                     <CodeMirror
-                        className={'query-input'}
+                        className={'query-editor'}
                         value={this.state.query}
                         options={{
                             mode: 'text/x-sql',
@@ -313,20 +281,33 @@ class QueryPanel extends Component {
                             </Select>
                         </FormGroup>
 
-                        <Button style={{float: 'right'}}
+                        <Button className="query-control-elements-right"
                                 disabled={queryExecutionDisabled}
-                                onClick={this.onQueryClick}
+                                onClick={this.onExecuteClick}
                                 icon="play"
-                                text="Query"/>
+                                text="Execute"/>
+
+                        <QueryHistory
+                            className="query-control-elements-right"
+                            onItemSelect={(value) => {
+                                this.setState({
+                                    queryMode: value.queryMode,
+                                    groupType: value.groupType,
+                                    database: value.database,
+                                    query: value.query
+                                });
+                            }}
+                            ref={this.refHandlers.queryHistory}/>
+
                         {this.state.executingQuery && <Spinner className="query-panel-spinner"
                                                                size={Spinner.SIZE_SMALL}/>}
-                        {containsError && <Button style={{float: 'right'}}
+                        {containsError && <Button className="query-control-elements-right"
                                                   onClick={this.onErrorClick}
                                                   icon="error"
                                                   intent={"danger"}
                                                   text="Errors"/>}
                         {containsError && <QueryErrorDialog errors={this.state.errors}
-                                                            key={1}
+                                                            key={"QueryErrorDialog"}
                                                             ref={this.refHandlers.errorDialog}/>}
                     </div>
                 </div>

@@ -14,7 +14,7 @@
 - Support for non sql databases?
  
 ### Known issues
-- If query result has multiple columns with same name only last column data is kept
+- Duplicate query result column names are renamed
  
 ## Getting Started
 

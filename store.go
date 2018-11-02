@@ -4,6 +4,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"strconv"
 	"sync"
 )
 
@@ -39,7 +40,7 @@ func (s *DatabaseStore) AddDatabase(config DatabaseConfig) error {
 	return nil
 }
 
-func (s *DatabaseStore) queryDatabase(groupId int, groupType string, query string) ([]map[string]interface{}, error) {
+func (s *DatabaseStore) queryDatabase(groupId int, groupType string, query string) ([]OrderedMap, error) {
 	if databaseInstance, ok := s.databases[DatabaseGroup{groupId, groupType}]; ok {
 		return queryToMap(databaseInstance.DB, query)
 	} else {
@@ -107,16 +108,16 @@ func openDatabase(config DatabaseConnConfig) (*sqlx.DB, error) {
 	return db, nil
 }
 
-func queryToMap(db *sqlx.DB, query string) ([]map[string]interface{}, error) {
-	var data []map[string]interface{}
+func queryToMap(db *sqlx.DB, query string) ([]OrderedMap, error) {
+	var data []OrderedMap
 	rows, err := db.Queryx(query)
 	if err != nil {
 		log.Error().Err(err).Msgf("failed to execute query")
 		return nil, err
 	}
 	for rows.Next() {
-		results := make(map[string]interface{})
-		err = rows.MapScan(results)
+		results := OrderedMap{Map: make(map[string]interface{})}
+		err = CustomMapScan(rows, &results)
 		if err != nil {
 			log.Error().Err(err).Msgf("failed to scan data")
 			return nil, err
@@ -126,4 +127,35 @@ func queryToMap(db *sqlx.DB, query string) ([]map[string]interface{}, error) {
 		data = append(data, results)
 	}
 	return data, nil
+}
+
+//copy of sqlx.go func MapScan(r ColScanner, dest map[string]interface{}) error {}
+func CustomMapScan(r sqlx.ColScanner, dest *OrderedMap) error {
+	// ignore r.started, since we needn't use reflect for anything.
+	columns, err := r.Columns()
+	if err != nil {
+		return err
+	}
+
+	dest.Order = columns
+
+	values := make([]interface{}, len(columns))
+	for i := range values {
+		values[i] = new(interface{})
+	}
+
+	err = r.Scan(values...)
+	if err != nil {
+		return err
+	}
+
+	for i, column := range columns {
+		if _, ok := dest.Map[column]; ok {
+			column = column + "__" + strconv.Itoa(i)
+			columns[i] = column
+		}
+		dest.Map[column] = *(values[i].(*interface{}))
+	}
+
+	return r.Err()
 }

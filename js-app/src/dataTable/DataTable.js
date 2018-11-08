@@ -8,41 +8,33 @@ class DataTable extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            columnDefs: [],
-            rowData: []
+            columnDefs: []
         };
     }
 
-    static getDerivedStateFromProps(nextProps, prevState) {
-        if (nextProps.rowData !== prevState.rowData) {
+    componentWillReceiveProps(nextProps) {
+        if (nextProps.data !== this.props.data) {
             const columns = [];
 
-            if (nextProps.data === null || nextProps.data.length === 0) {
-                return {
-                    columnDefs: [],
-                    rowData: []
-                };
+            if (nextProps.data !== null && nextProps.data.length !== 0) {
+                Object.keys(nextProps.data[0]).forEach((columnName, index) => {
+                    let element = {headerName: columnName, field: columnName};
+                    if (columnName === "groupId") {
+                        element.sort = 'asc';
+                        element.maxWidth = 48;
+                        element.type = "numericColumn";
+                        element.pinned = "left";
+                        element.filter = "agNumberColumnFilter";
+                        columns.unshift(element);
+                    } else {
+                        columns.push(element);
+                    }
+                });
             }
-
-            Object.keys(nextProps.data[0]).forEach((columnName, index) => {
-                let element = {headerName: columnName, field: columnName};
-                if (columnName === "groupId") {
-                    element.sort = 'asc';
-                    element.maxWidth = 48;
-                    element.type = "numericColumn";
-                    element.pinned = "left";
-                    element.filter = "agNumberColumnFilter";
-                    columns.unshift(element);
-                } else {
-                    columns.push(element);
-                }
+            this.setState({
+                columnDefs: columns
             });
-
-            return {
-                columnDefs: columns,
-                rowData: nextProps.data
-            };
-        } else return null;
+        }
     }
 
     render() {
@@ -65,11 +57,9 @@ class DataTable extends Component {
                     enableFilter={true}
                     floatingFilter={true}
                     enableColResize={true}
-                    defaultColDef={{
-                        editable: true
-                    }}
+                    defaultColDef={{editable: true}}
                     columnDefs={this.state.columnDefs}
-                    rowData={this.state.rowData}
+                    rowData={this.props.data}
                 />
             </div>
         );

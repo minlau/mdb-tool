@@ -6,23 +6,21 @@ import axios from "axios";
 import {Controlled as CodeMirror} from 'react-codemirror2'
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/eclipse.css';
-import 'codemirror/mode/sql/sql.js';
+import 'codemirror/mode/sql/sql';
 
-import DataTable from "../dataTable/DataTable";
-import QueryHistory from "./queryHistory/QueryHistory";
-import QueryErrorDialog from "../queryErrorDialog/QueryErrorDialog";
-import {highlightText} from "../util/select.js";
+import DataTable from "./DataTable";
+import History from "./History";
+import ErrorDialog from "./ErrorDialog";
+import {highlightText} from "../../utils/select";
 import './QueryPanel.css';
-
 
 const queryModes = [{label: "Multiple", value: "multiple"}, {label: "Single", value: "single"}];
 
-class QueryPanel extends Component {
+export default class QueryPanel extends Component {
 
     constructor(props) {
         super(props);
 
-        this.errorDialog = null;
         this.refHandlers = {
             errorDialog: (ref) => this.errorDialog = ref,
             codeMirror: (ref) => this.codeMirror = ref,
@@ -31,17 +29,17 @@ class QueryPanel extends Component {
 
         this.initializeData = this.initializeData.bind(this);
         this.handleQueryTextChange = this.handleQueryTextChange.bind(this);
-        this.onExecuteClick = this.onExecuteClick.bind(this);
-        this.onErrorClick = this.onErrorClick.bind(this);
+        this.handleExecuteClick = this.handleExecuteClick.bind(this);
+        this.handleErrorClick = this.handleErrorClick.bind(this);
 
-        this.onQueryModeChange = this.onQueryModeChange.bind(this);
-        this.onGroupTypeChange = this.onGroupTypeChange.bind(this);
+        this.handleQueryModeChange = this.handleQueryModeChange.bind(this);
+        this.handleGroupTypeChange = this.handleGroupTypeChange.bind(this);
 
-        this.onDatabaseSelect = this.onDatabaseSelect.bind(this);
-        this.selectItemRenderer = this.selectItemRenderer.bind(this);
+        this.handleDatabaseSelect = this.handleDatabaseSelect.bind(this);
+        this.renderDatabase = this.renderDatabase.bind(this);
 
         this.state = {
-            queryMode: "multiple",
+            queryMode: queryModes[0].value,
             groupTypes: [],
             groupType: "",
             databases: [],
@@ -117,7 +115,7 @@ class QueryPanel extends Component {
             })
     }
 
-    selectItemRenderer(item, {handleClick, modifiers, query}) {
+    renderDatabase(item, {handleClick, modifiers, query}) {
         if (!modifiers.matchesPredicate) {
             return null;
         }
@@ -134,7 +132,7 @@ class QueryPanel extends Component {
         );
     }
 
-    onExecuteClick() {
+    handleExecuteClick() {
         this.setState({executingQuery: true, errors: []});
 
         let selection = this.codeMirror.editor.getSelection().trim();
@@ -190,7 +188,7 @@ class QueryPanel extends Component {
                 })
     }
 
-    onErrorClick() {
+    handleErrorClick() {
         this.errorDialog.setState({isOpen: true});
     }
 
@@ -198,11 +196,11 @@ class QueryPanel extends Component {
         this.setState({query: value})
     }
 
-    onQueryModeChange(e) {
+    handleQueryModeChange(e) {
         this.setState({queryMode: e.target.value});
     }
 
-    onGroupTypeChange(event) {
+    handleGroupTypeChange(event) {
         let groupType = event.currentTarget.value;
         let selectedDatabase = this.state.database;
         if (selectedDatabase != null) {
@@ -223,7 +221,7 @@ class QueryPanel extends Component {
         });
     }
 
-    onDatabaseSelect(value) {
+    handleDatabaseSelect(value) {
         this.setState({database: value});
     }
 
@@ -235,60 +233,68 @@ class QueryPanel extends Component {
 
         return (
             <div style={{height: '100vh'}} className="flex-container c-children-spacing">
-                <div className={'query-editor-container'}>
+                <div className="query-editor-container">
                     <CodeMirror
-                        className={'query-editor'}
+                        className="query-editor"
                         value={this.state.query}
                         options={{
                             mode: 'text/x-sql',
                             theme: 'eclipse',
                             lineNumbers: true,
-                            scrollbarStyle: "native"
+                            scrollbarStyle: 'native'
                         }}
                         onBeforeChange={this.handleQueryTextChange}
                         ref={this.refHandlers.codeMirror}
                     />
 
                     <div className="query-control-elements">
-                        <FormGroup inline={true} label="Query Mode">
-                            <HTMLSelect value={this.state.queryMode}
-                                        onChange={this.onQueryModeChange}
-                                        options={queryModes}/>
+                        <FormGroup inline label="Query Mode">
+                            <HTMLSelect
+                                value={this.state.queryMode}
+                                onChange={this.handleQueryModeChange}
+                                options={queryModes}
+                            />
                         </FormGroup>
 
-                        <FormGroup inline={true} label="Group Type">
-                            <HTMLSelect value={this.state.groupType}
-                                        disabled={this.state.groupTypes === []}
-                                        onChange={this.onGroupTypeChange}
-                                        options={this.state.groupTypes}/>
+                        <FormGroup inline label="Group Type">
+                            <HTMLSelect
+                                value={this.state.groupType}
+                                disabled={this.state.groupTypes === []}
+                                onChange={this.handleGroupTypeChange}
+                                options={this.state.groupTypes}
+                            />
                         </FormGroup>
 
-                        <FormGroup inline={true} label="Database">
-                            <Select items={this.state.databases}
-                                    itemPredicate={QueryPanel.selectItemPredicate}
-                                    itemRenderer={this.selectItemRenderer}
-                                    noResults={<MenuItem disabled={true} text="No results."/>}
-                                    onItemSelect={this.onDatabaseSelect}
-                                    popoverProps={{minimal: true}}
-                                    disabled={this.state.queryMode === "multiple"}>
+                        <FormGroup inline label="Database">
+                            <Select
+                                items={this.state.databases}
+                                itemPredicate={QueryPanel.selectItemPredicate}
+                                itemRenderer={this.renderDatabase}
+                                noResults={<MenuItem disabled text="No results."/>}
+                                onItemSelect={this.handleDatabaseSelect}
+                                popoverProps={{minimal: true}}
+                                disabled={this.state.queryMode === "multiple"}
+                            >
                                 <Button
-                                    icon={"database"}
+                                    icon="database"
                                     text={this.state.database !== null
                                         ? this.state.database.groupId + ". " + this.state.database.title
-                                        : "-"}
+                                        : '-'}
                                     rightIcon="double-caret-vertical"
-                                    disabled={this.state.queryMode === "multiple"}/>
+                                    disabled={this.state.queryMode === "multiple"}
+                                />
                             </Select>
                         </FormGroup>
 
-                        <Button className="query-control-elements-right"
-                                disabled={queryExecutionDisabled}
-                                onClick={this.onExecuteClick}
-                                icon="play"
-                                text="Execute"/>
-
-                        <QueryHistory
+                        <Button
                             className="query-control-elements-right"
+                            disabled={queryExecutionDisabled}
+                            onClick={this.handleExecuteClick}
+                            icon="play"
+                            text="Execute"
+                        />
+
+                        <History
                             onItemSelect={(value) => {
                                 this.setState({
                                     queryMode: value.queryMode,
@@ -297,18 +303,25 @@ class QueryPanel extends Component {
                                     query: value.query
                                 });
                             }}
-                            ref={this.refHandlers.queryHistory}/>
+                            ref={this.refHandlers.queryHistory}
+                        />
 
-                        {this.state.executingQuery && <Spinner className="query-panel-spinner"
-                                                               size={Spinner.SIZE_SMALL}/>}
-                        {containsError && <Button className="query-control-elements-right"
-                                                  onClick={this.onErrorClick}
-                                                  icon="error"
-                                                  intent={"danger"}
-                                                  text="Errors"/>}
-                        {containsError && <QueryErrorDialog errors={this.state.errors}
-                                                            key={"QueryErrorDialog"}
-                                                            ref={this.refHandlers.errorDialog}/>}
+                        {this.state.executingQuery && <Spinner
+                            className="query-panel-spinner"
+                            size={Spinner.SIZE_SMALL}
+                        />}
+                        {containsError && <Button
+                            className="query-control-elements-right"
+                            onClick={this.handleErrorClick}
+                            icon="error"
+                            intent="danger"
+                            text="Errors"
+                        />}
+                        {containsError && <ErrorDialog
+                            errors={this.state.errors}
+                            key="QueryErrorDialog"
+                            ref={this.refHandlers.errorDialog}
+                        />}
                     </div>
                 </div>
 
@@ -317,6 +330,4 @@ class QueryPanel extends Component {
         );
     }
 }
-
-export default QueryPanel;
 

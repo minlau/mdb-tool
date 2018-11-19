@@ -3,7 +3,7 @@ import {AgGridReact} from 'ag-grid-react';
 import 'ag-grid-community/dist/styles/ag-grid.css';
 import 'ag-grid-community/dist/styles/ag-theme-balham.css';
 
-class DataTable extends Component {
+export default class DataTable extends Component {
 
     constructor(props) {
         super(props);
@@ -37,26 +37,27 @@ class DataTable extends Component {
         }
     }
 
+    autoSizeColumns(params) {
+        let columnIds = [];
+        params.columnApi.getAllColumns().forEach(function (column) {
+            columnIds.push(column.colId);
+        });
+        params.columnApi.autoSizeColumns(columnIds);
+    };
+
     render() {
-        const autoSizeColumns = (params) => {
-            let columnIds = [];
-            params.columnApi.getAllColumns().forEach(function (column) {
-                columnIds.push(column.colId);
-            });
-            params.columnApi.autoSizeColumns(columnIds);
-        };
         return (
             <div
                 className="ag-theme-balham flex-container-fill"
                 style={{display: 'initial'}}
             >
                 <AgGridReact
-                    onGridReady={autoSizeColumns}
-                    onGridColumnsChanged={autoSizeColumns}
-                    enableSorting={true}
-                    enableFilter={true}
-                    floatingFilter={true}
-                    enableColResize={true}
+                    onGridReady={this.autoSizeColumns}
+                    onGridColumnsChanged={this.autoSizeColumns}
+                    enableSorting
+                    enableFilter
+                    floatingFilter
+                    enableColResize
                     defaultColDef={{editable: true}}
                     columnDefs={this.state.columnDefs}
                     rowData={this.props.data}
@@ -65,5 +66,3 @@ class DataTable extends Component {
         );
     }
 }
-
-export default DataTable;

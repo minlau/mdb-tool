@@ -1,7 +1,7 @@
 import React, {Component} from "react";
 import {Button, MenuItem} from "@blueprintjs/core";
 import {Select} from "@blueprintjs/select";
-import {highlightText} from "../../util/select";
+import {highlightText} from "../../utils/select";
 
 const getQueryLabel = (item) => {
     return `${item.queryMode} ${item.groupType} ${item.database != null
@@ -9,7 +9,7 @@ const getQueryLabel = (item) => {
         : ''}`;
 };
 
-class QueryHistory extends Component {
+export default class History extends Component {
 
     constructor(props) {
         super(props);
@@ -55,21 +55,22 @@ class QueryHistory extends Component {
 
     render() {
         return (
-            <Select className={this.props.className}
-                    items={this.state.queries}
-                    itemPredicate={this.selectItemPredicate}
-                    itemRenderer={this.selectItemRenderer}
-                    noResults={<MenuItem disabled={true} text="No results."/>}
-                    onItemSelect={this.props.onItemSelect}
-                    resetOnClose={true}
-                    popoverProps={{minimal: true}}>
+            <Select
+                className="query-control-elements-right"
+                items={this.state.queries}
+                itemPredicate={this.selectItemPredicate}
+                itemRenderer={this.selectItemRenderer}
+                noResults={<MenuItem disabled text="No results."/>}
+                onItemSelect={this.props.onItemSelect}
+                resetOnClose
+                popoverProps={{minimal: true}}
+            >
                 <Button
                     icon="history"
-                    text={`${this.state.queries.length} items`}/>
+                    text={`${this.state.queries.length} items`}
+                />
             </Select>
         );
     }
 
 }
-
-export default QueryHistory;

@@ -2,7 +2,7 @@ import React, {Component} from "react";
 import {Button, Classes, Dialog, Icon, Intent} from "@blueprintjs/core";
 import {Tooltip} from "@blueprintjs/core/lib/cjs";
 
-class QueryErrorDialog extends Component {
+export default class ErrorDialog extends Component {
 
     constructor(props) {
         super(props);
@@ -53,11 +53,11 @@ class QueryErrorDialog extends Component {
             <Dialog
                 onClose={this.handleClose}
                 title="Errors"
-                canEscapeKeyClose={true}
-                canOutsideClickClose={true}
-                enforceFocus={true}
                 isOpen={this.state.isOpen}
-                usePortal={true}
+                canEscapeKeyClose
+                canOutsideClickClose
+                enforceFocus
+                usePortal
             >
                 <div className={Classes.DIALOG_BODY}>
                     {errorsContent}
@@ -71,5 +71,3 @@ class QueryErrorDialog extends Component {
         );
     }
 }
-
-export default QueryErrorDialog;

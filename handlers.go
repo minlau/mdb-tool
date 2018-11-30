@@ -37,17 +37,15 @@ func query(store *DatabaseStore) gin.HandlerFunc {
 		}
 
 		if req.GroupId == nil {
-			c.JSON(200, store.queryMultipleDatabases(req.GroupType, req.Query))
+			c.JSON(200, store.QueryMultipleDatabases(req.GroupType, req.Query))
 		} else {
-			data, err := store.queryDatabase(*req.GroupId, req.GroupType, req.Query)
-			var result = GroupQueryResult{GroupId: *req.GroupId, Data: data, Error: err}
-			c.JSON(200, result)
+			c.JSON(200, store.QueryDatabase(*req.GroupId, req.GroupType, req.Query))
 		}
 	}
 }
 
 func getDatabases(store *DatabaseStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.JSON(200, store.getDatabaseItems())
+		c.JSON(200, store.GetDatabaseItems())
 	}
 }

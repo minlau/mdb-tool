@@ -2,36 +2,36 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
+	port := flag.Int("port", 8080, "server port")
 	configFilePath := flag.String("config", "databases.json", "databases config file path")
 	flag.Parse()
 
 	initLogger()
-	log.Debug().Msg("starting app")
+	log.Info().Msg("starting app")
 
-	//databaseConfigs, err := getDatabaseConfigsFromDb()
-	databaseConfigs, err := getDatabaseConfigsFromFile(*configFilePath)
+	config, err := readConfig(*configFilePath)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to initialize config. Closing app")
+		log.Error().Err(err).Msg("failed to read config. closing app")
 		return
 	}
 
-	log.Debug().Msg("starting databases initialization")
+	log.Info().Msg("starting databases initialization")
 
 	databaseStore := NewDatabaseStore()
-	err = databaseStore.AddDatabases(databaseConfigs)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to add databases. Closing app")
-		return
-	}
-	log.Debug().Msg("finished databases initialization")
+	databaseStore.AddDatabases(config.DatabaseConfigs)
+	databaseConfigs := GetDatabaseConfigsFromDataSources(config.DataSources)
+	databaseStore.AddDatabases(databaseConfigs)
 
-	log.Debug().Msg("starting web service with port: 8079")
+	log.Info().Msg("finished databases initialization")
+
+	log.Info().Msgf("starting web service with port: %d", *port)
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
@@ -39,9 +39,9 @@ func main() {
 
 	initHandlers(r, databaseStore)
 
-	err = r.Run(":8079")
+	err = r.Run(fmt.Sprintf(":%d", *port))
 	if err != nil {
-		log.Error().Err(err).Msg("failed to start web service. Closing app")
+		log.Error().Err(err).Msg("failed to start web service. closing app")
 		return
 	}
 }

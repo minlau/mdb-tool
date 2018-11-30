@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -9,47 +11,67 @@ import (
 )
 
 type DatabaseStore struct {
+	m         *sync.Mutex
 	databases map[DatabaseGroup]DatabaseInstance
 }
 
 func NewDatabaseStore() *DatabaseStore {
-	return &DatabaseStore{make(map[DatabaseGroup]DatabaseInstance)}
+	return &DatabaseStore{&sync.Mutex{}, make(map[DatabaseGroup]DatabaseInstance)}
 }
 
-//does not remove added databases if error occurs
-func (s *DatabaseStore) AddDatabases(databases []DatabaseConfig) error {
+func (s *DatabaseStore) AddDatabases(databases []DatabaseConfig) {
+	var wg sync.WaitGroup
 	for _, item := range databases {
-		err := s.AddDatabase(item)
-		if err != nil {
-			return err
-		}
+		wg.Add(1)
+		go func(config DatabaseConfig) {
+			err := s.AddDatabase(config)
+			if err != nil {
+				log.Warn().Err(err).Msg("failed to add database")
+			}
+			defer wg.Done()
+		}(item)
 	}
-	return nil
+	wg.Wait()
 }
 
 func (s *DatabaseStore) AddDatabase(config DatabaseConfig) error {
+	s.m.Lock()
 	if _, ok := s.databases[config.DatabaseGroup]; ok {
-		return errors.New("database with given groupId and groupType is already added")
+		s.m.Unlock()
+		return errors.Errorf("database is already added with groupId=%v, groupType=%v", config.GroupId,
+			config.GroupType)
 	}
+	s.databases[config.DatabaseGroup] = DatabaseInstance{}
+	s.m.Unlock()
 
-	db, err := openDatabase(config.DatabaseConnConfig)
+	db, err := config.DatabaseConnConfig.OpenDatabase()
 	if err != nil {
-		return errors.Errorf("failed to open database. %v", config)
+		s.m.Lock()
+		delete(s.databases, config.DatabaseGroup)
+		s.m.Unlock()
+		return errors.Wrap(err, "failed to open database")
 	}
+	s.m.Lock()
 	s.databases[config.DatabaseGroup] = DatabaseInstance{config, db}
+	s.m.Unlock()
 	return nil
 }
 
-func (s *DatabaseStore) queryDatabase(groupId int, groupType string, query string) ([]OrderedMap, error) {
+func (s *DatabaseStore) QueryDatabase(groupId int, groupType string, query string) GroupQueryResult {
 	if databaseInstance, ok := s.databases[DatabaseGroup{groupId, groupType}]; ok {
-		return queryToMap(databaseInstance.DB, query)
+		data, err := queryToMap(databaseInstance.DB, query)
+		return GroupQueryResult{GroupId: groupId, Data: data, Error: err}
 	} else {
-		return nil, errors.Errorf("no database registered with groupId: %d, groupType: %s", groupId, groupType)
+		return GroupQueryResult{
+			GroupId: groupId,
+			Data:    nil,
+			Error:   errors.Errorf("no database registered with groupId=%d, groupType=%s", groupId, groupType),
+		}
 	}
 }
 
 //does not have timeout, might be a problem
-func (s *DatabaseStore) queryMultipleDatabases(groupType string, query string) []GroupQueryResult {
+func (s *DatabaseStore) QueryMultipleDatabases(groupType string, query string) []GroupQueryResult {
 	var results []GroupQueryResult
 	var mutex = &sync.Mutex{}
 	var filteredDatabases = make(map[int]*sqlx.DB)
@@ -60,9 +82,9 @@ func (s *DatabaseStore) queryMultipleDatabases(groupType string, query string) [
 		}
 	}
 
-	c := make(chan int, len(filteredDatabases))
-
+	var wg sync.WaitGroup
 	for groupId, db := range filteredDatabases {
+		wg.Add(1)
 		go func(groupId int, db *sqlx.DB) {
 			result, err := queryToMap(db, query)
 			var groupQueryResult = GroupQueryResult{
@@ -73,16 +95,14 @@ func (s *DatabaseStore) queryMultipleDatabases(groupType string, query string) [
 			mutex.Lock()
 			results = append(results, groupQueryResult)
 			mutex.Unlock()
-			c <- groupId
+			wg.Done()
 		}(groupId, db)
 	}
-	for range filteredDatabases {
-		<-c
-	}
+	wg.Wait()
 	return results
 }
 
-func (s *DatabaseStore) getDatabaseItems() []DatabaseDescription {
+func (s *DatabaseStore) GetDatabaseItems() []DatabaseDescription {
 	arr := make([]DatabaseDescription, 0, len(s.databases))
 	for _, value := range s.databases {
 		arr = append(arr, value.Config.DatabaseDescription)
@@ -90,47 +110,84 @@ func (s *DatabaseStore) getDatabaseItems() []DatabaseDescription {
 	return arr
 }
 
-func openDatabase(config DatabaseConnConfig) (*sqlx.DB, error) {
-	driverName, err := config.getDriverName()
-	if err != nil {
-		return nil, err
-	}
+type OrderedMap struct {
+	Order []string
+	Map   map[string]interface{}
+}
 
-	connectionUrl, err := config.getConnectionUrl()
-	if err != nil {
-		return nil, err
+func (om OrderedMap) MarshalJSON() ([]byte, error) {
+	var b []byte
+	buf := bytes.NewBuffer(b)
+	buf.WriteRune('{')
+	l := len(om.Order)
+	for i, key := range om.Order {
+		km, err := json.Marshal(key)
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(km)
+		buf.WriteRune(':')
+		vm, err := json.Marshal(om.Map[key])
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(vm)
+		if i != l-1 {
+			buf.WriteRune(',')
+		}
 	}
+	buf.WriteRune('}')
+	return buf.Bytes(), nil
+}
 
-	db, err := sqlx.Connect(driverName, connectionUrl)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to connect to database")
-	}
-	return db, nil
+type DatabaseInstance struct {
+	Config DatabaseConfig
+	DB     *sqlx.DB
+}
+
+type GroupQueryResult struct {
+	GroupId int          `json:"groupId"`
+	Data    []OrderedMap `json:"data"`
+	Error   error        `json:"error"`
 }
 
 func queryToMap(db *sqlx.DB, query string) ([]OrderedMap, error) {
-	var data []OrderedMap
-	rows, err := db.Queryx(query)
+	tx, err := db.Begin()
 	if err != nil {
-		log.Error().Err(err).Msgf("failed to execute query")
 		return nil, err
 	}
+
+	defer func() {
+		if err != nil {
+			rollbackErr := tx.Rollback()
+			if rollbackErr != nil {
+				log.Error().Err(rollbackErr).Msg("failed to rollback transaction")
+			}
+		}
+	}()
+
+	rows, err := tx.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	var data []OrderedMap
 	for rows.Next() {
 		results := OrderedMap{Map: make(map[string]interface{})}
-		err = CustomMapScan(rows, &results)
+		err = customMapScan(rows, &results)
 		if err != nil {
-			log.Error().Err(err).Msgf("failed to scan data")
 			return nil, err
-			//continue?
 		}
-
 		data = append(data, results)
+	}
+	err = tx.Commit()
+	if err != nil {
+		return data, err
 	}
 	return data, nil
 }
 
 //copy of sqlx.go func MapScan(r ColScanner, dest map[string]interface{}) error {}
-func CustomMapScan(r sqlx.ColScanner, dest *OrderedMap) error {
+func customMapScan(r sqlx.ColScanner, dest *OrderedMap) error {
 	// ignore r.started, since we needn't use reflect for anything.
 	columns, err := r.Columns()
 	if err != nil {

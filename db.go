@@ -1,56 +1,19 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	_ "github.com/nakagami/firebirdsql"
 	"github.com/pkg/errors"
-	"os"
+	"github.com/rs/zerolog/log"
+	"sync"
 )
 
-type OrderedMap struct {
-	Order []string
-	Map   map[string]interface{}
-}
-
-func (om OrderedMap) MarshalJSON() ([]byte, error) {
-	var b []byte
-	buf := bytes.NewBuffer(b)
-	buf.WriteRune('{')
-	l := len(om.Order)
-	for i, key := range om.Order {
-		km, err := json.Marshal(key)
-		if err != nil {
-			return nil, err
-		}
-		buf.Write(km)
-		buf.WriteRune(':')
-		vm, err := json.Marshal(om.Map[key])
-		if err != nil {
-			return nil, err
-		}
-		buf.Write(vm)
-		if i != l-1 {
-			buf.WriteRune(',')
-		}
-	}
-	buf.WriteRune('}')
-	return buf.Bytes(), nil
-}
-
-type GroupQueryResult struct {
-	GroupId int          `json:"groupId"`
-	Data    []OrderedMap `json:"data"`
-	Error   error        `json:"error"`
-}
-
-type DatabaseInstance struct {
-	Config DatabaseConfig
-	DB     *sqlx.DB
+type DataSource struct {
+	Query string
+	DatabaseConnConfig
 }
 
 type DatabaseConfig struct {
@@ -106,39 +69,59 @@ func (c DatabaseConnConfig) getDriverName() (string, error) {
 	}
 }
 
-const DbSelect = "select company_id as groupId || '', db_host as hostname, db_port as port, db_name as name, " +
-	"db_username as username, db_password as password, " +
-	"case when (db_type == 0) then 'postgresql' else 'firebird' end as groupType " +
-	"from company_databases"
-
-func getDatabaseConfigsFromDb() ([]DatabaseConfig, error) {
-	db, err := sqlx.Connect("postgres",
-		"dbname=core user=postgres password=admin host=192.74.169.108 sslmode=disable")
+func (c DatabaseConnConfig) OpenDatabase() (*sqlx.DB, error) {
+	driverName, err := c.getDriverName()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to connect to db")
+		return nil, err
+	}
+
+	connectionUrl, err := c.getConnectionUrl()
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := sqlx.Connect(driverName, connectionUrl)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to connect to database. config=%#v", c)
+	}
+	return db, nil
+}
+
+func GetDatabaseConfigsFromDataSources(dataSources []DataSource) []DatabaseConfig {
+	var databaseConfigs []DatabaseConfig
+	var mutex sync.Mutex
+	var wg sync.WaitGroup
+
+	for _, item := range dataSources {
+		wg.Add(1)
+		go func(dataSource DataSource) {
+			configs, err := GetDatabaseConfigsFromDataSource(dataSource)
+			if err != nil {
+				log.Warn().Err(err).Msg("failed to get database configs from db")
+			} else {
+				mutex.Lock()
+				databaseConfigs = append(databaseConfigs, configs...)
+				mutex.Unlock()
+			}
+			wg.Done()
+		}(item)
+	}
+	wg.Wait()
+	return databaseConfigs
+}
+
+func GetDatabaseConfigsFromDataSource(dataSource DataSource) ([]DatabaseConfig, error) {
+	db, err := dataSource.DatabaseConnConfig.OpenDatabase()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to open database")
 	}
 	defer db.Close()
 
 	var databaseConfigs []DatabaseConfig
-	err = db.Select(&databaseConfigs, DbSelect)
+	err = db.Select(&databaseConfigs, dataSource.Query)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to select database configs")
-	}
-	return databaseConfigs, nil
-}
-
-func getDatabaseConfigsFromFile(path string) ([]DatabaseConfig, error) {
-	var databaseConfigs []DatabaseConfig
-
-	configFile, err := os.Open(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to open file")
-	}
-	defer configFile.Close()
-
-	jsonParser := json.NewDecoder(configFile)
-	if err = jsonParser.Decode(&databaseConfigs); err != nil {
-		return nil, errors.Wrap(err, "failed to parse file")
+		return nil, errors.Wrapf(err, "failed to select database configs. config=%#v",
+			dataSource.DatabaseConnConfig)
 	}
 	return databaseConfigs, nil
 }

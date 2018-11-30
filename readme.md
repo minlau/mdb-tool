@@ -15,6 +15,7 @@
  
 ### Known issues
 - Duplicate query result column names are renamed
+- Query error in some cases has no message/data
  
 ## Getting Started
 
@@ -40,21 +41,34 @@ groupId+groupType is **unique**
 
 Example:
 ```
-[
-  {
-    "groupId": 1,
-    "groupType" : "main",
-    "title": "First",
-    
-    "hostname": "localhost",
-    "port": 5432,
-    "name": "db1",
-    "username": "postgres",
-    "password": "admin",
-    "type": "postgresql"
-  },
-  ...
-]
+{
+  "dataSources": [
+    {
+      "query": "select 1 as groupId, 'groupType' as groupType, 'title' as title, 'localhost' as hostname, 5432 as port, 'name' as name, 'username' as username, 'password' as password, 'postgresql' as type",
+      
+      "hostname": "localhost",
+      "port": 5432,
+      "name": "db1",
+      "username": "postgres",
+      "password": "admin",
+      "type": "postgresql"
+    }
+  ],
+  "databaseConfigs": [
+    {
+      "groupId": 1,
+      "groupType" : "main",
+      "title": "First",
+      
+      "hostname": "localhost",
+      "port": 5432,
+      "name": "db1",
+      "username": "postgres",
+      "password": "admin",
+      "type": "postgresql"
+    }
+  ]
+}
 ```
 
 ## Deployment
@@ -62,5 +76,5 @@ Example:
 Executable requires assets folder and a config file
 
 ``
-mdb --config=databases.json
+mdb --config=databases.json --port=8080
 ``

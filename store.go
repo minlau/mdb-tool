@@ -24,11 +24,11 @@ func (s *DatabaseStore) AddDatabases(databases []DatabaseConfig) {
 	for _, item := range databases {
 		wg.Add(1)
 		go func(config DatabaseConfig) {
+			defer wg.Done()
 			err := s.AddDatabase(config)
 			if err != nil {
 				log.Warn().Err(err).Msg("failed to add database")
 			}
-			defer wg.Done()
 		}(item)
 	}
 	wg.Wait()

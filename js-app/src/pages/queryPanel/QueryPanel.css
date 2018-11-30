@@ -26,8 +26,7 @@
     float: right;
 }
 
-.query-panel-spinner {
-    float: right;
+.query-executing-spinner {
     padding-top: 3px;
 }
 

@@ -56,7 +56,7 @@ export default class History extends Component {
     render() {
         return (
             <Select
-                className="query-control-elements-right"
+                className={this.props.className}
                 items={this.state.queries}
                 itemPredicate={this.selectItemPredicate}
                 itemRenderer={this.selectItemRenderer}

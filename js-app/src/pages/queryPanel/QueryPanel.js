@@ -295,6 +295,7 @@ export default class QueryPanel extends Component {
                         />
 
                         <History
+                            className="query-control-elements-right"
                             onItemSelect={(value) => {
                                 this.setState({
                                     queryMode: value.queryMode,
@@ -307,7 +308,7 @@ export default class QueryPanel extends Component {
                         />
 
                         {this.state.executingQuery && <Spinner
-                            className="query-panel-spinner"
+                            className={['query-control-elements-right', 'query-executing-spinner']}
                             size={Spinner.SIZE_SMALL}
                         />}
                         {containsError && <Button

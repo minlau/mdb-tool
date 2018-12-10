@@ -1,15 +1,51 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/render"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
-func initHandlers(r *gin.Engine, store *DatabaseStore) {
-	r.StaticFile("/", "./assets/index.html")
-	r.Static("/assets", "./assets")
-	r.GET("/databases", getDatabases(store))
-	r.GET("/query", query(store))
+func initHandlers(r *chi.Mux, store *DatabaseStore) {
+	ServeFile(r, "/", "./assets/index.html")
+	ServeFiles(r, "/assets", http.Dir("./assets"))
+	r.Get("/databases", getDatabases(store))
+	r.Get("/query", query(store))
+}
+
+func ServeFiles(r chi.Router, path string, root http.FileSystem) {
+	if strings.ContainsAny(path, "{}*") {
+		panic("ServeFiles does not permit URL parameters.")
+	}
+
+	fs := http.StripPrefix(path, http.FileServer(root))
+
+	if path != "/" && path[len(path)-1] != '/' {
+		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
+		path += "/"
+	}
+	path += "*"
+
+	r.Get(path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fs.ServeHTTP(w, r)
+	}))
+}
+
+func ServeFile(r chi.Router, path string, file string) {
+	if strings.ContainsAny(path, "{}*") {
+		panic("ServeFile does not permit URL parameters.")
+	}
+
+	if path != "/" && path[len(path)-1] != '/' {
+		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
+		path += "/"
+	}
+
+	r.Get(path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, file)
+	}))
 }
 
 type queryRequest struct {
@@ -18,34 +54,47 @@ type queryRequest struct {
 	Query     string `form:"query" json:"query" binding:"required"`
 }
 
-func query(store *DatabaseStore) gin.HandlerFunc {
-	return func(c *gin.Context) {
+func query(store *DatabaseStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		var req queryRequest
-		if err := c.ShouldBind(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
+		groupIdString := r.URL.Query().Get("groupId")
+		if groupIdString != "" {
+			groupIdInt, err := strconv.Atoi(groupIdString)
+			if err != nil {
+				render.Status(r, http.StatusBadRequest)
+				render.JSON(w, r, render.M{"error": err.Error()})
+				return
+			}
+			req.GroupId = &groupIdInt
 		}
 
+		req.Query = r.URL.Query().Get("query")
 		if req.Query == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "query is required"})
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, render.M{"error": "query is required"})
 			return
 		}
 
+		req.GroupType = r.URL.Query().Get("groupType")
 		if req.GroupType == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "type is required"})
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, render.M{"error": "type is required"})
 			return
 		}
 
 		if req.GroupId == nil {
-			c.JSON(200, store.QueryMultipleDatabases(req.GroupType, req.Query))
+			render.Status(r, http.StatusOK)
+			render.JSON(w, r, store.QueryMultipleDatabases(req.GroupType, req.Query))
 		} else {
-			c.JSON(200, store.QueryDatabase(*req.GroupId, req.GroupType, req.Query))
+			render.Status(r, http.StatusOK)
+			render.JSON(w, r, store.QueryDatabase(*req.GroupId, req.GroupType, req.Query))
 		}
 	}
 }
 
-func getDatabases(store *DatabaseStore) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(200, store.GetDatabaseItems())
+func getDatabases(store *DatabaseStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		render.Status(r, http.StatusOK)
+		render.JSON(w, r, store.GetDatabaseItems())
 	}
 }

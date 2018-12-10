@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/rs/zerolog/log"
+	"net/http"
 )
 
 func main() {
@@ -31,15 +32,16 @@ func main() {
 
 	log.Info().Msg("finished databases initialization")
 
-	log.Info().Msgf("starting web service with port: %d", *port)
+	log.Info().
+		Int("port", *port).
+		Msg("starting web service")
 
-	gin.SetMode(gin.ReleaseMode)
-	r := gin.Default()
-	r.Use(gzip.Gzip(gzip.DefaultCompression))
-
+	r := chi.NewRouter()
+	r.Use(middleware.DefaultCompress)
+	r.Use(ZeroLogLogger)
+	r.Use(middleware.Recoverer)
 	initHandlers(r, databaseStore)
-
-	err = r.Run(fmt.Sprintf(":%d", *port))
+	err = http.ListenAndServe(fmt.Sprintf(":%d", *port), r)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to start web service. closing app")
 		return

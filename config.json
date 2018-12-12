@@ -54,6 +54,17 @@
       "username": "postgres",
       "password": "admin",
       "type": "postgresql"
+    },
+    {
+      "groupId": 5,
+      "groupType": "mysql-db",
+      "title": "Fifth",
+      "hostname": "localhost",
+      "port": 3306,
+      "name": "main",
+      "username": "root",
+      "password": "root",
+      "type": "mysql"
     }
   ]
 }

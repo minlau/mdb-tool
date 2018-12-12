@@ -11,7 +11,7 @@ import (
 
 func main() {
 	port := flag.Int("port", 8080, "server port")
-	configFilePath := flag.String("config", "databases.json", "databases config file path")
+	configFilePath := flag.String("config", "config.json", "databases config file path")
 	flag.Parse()
 
 	initLogger()

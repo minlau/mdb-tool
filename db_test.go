@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	"path/filepath"
 	"testing"
 )
 
@@ -112,85 +111,5 @@ func TestGetDriverName(t *testing.T) {
 
 		assert.Equal(t, tt.expected, url)
 		assert.IsType(t, tt.expectedErr, err)
-	}
-}
-
-func TestGetDatabaseConfigsFromFile(t *testing.T) {
-	var tests = []struct {
-		filepath    string
-		expected    []DatabaseConfig
-		expectedErr bool
-	}{
-		{
-			filepath: filepath.Join("testdata", "config1.json"),
-			expected: []DatabaseConfig{
-				{
-					DatabaseDescription: DatabaseDescription{
-						Title: "First-1",
-						DatabaseGroup: DatabaseGroup{
-							GroupId:   1,
-							GroupType: "test1",
-						}},
-					DatabaseConnConfig: DatabaseConnConfig{
-						Hostname: "localhost",
-						Name:     "db1",
-						Port:     5432,
-						Type:     "postgresql",
-						Username: "postgres",
-						Password: "admin",
-					},
-				},
-				{
-					DatabaseDescription: DatabaseDescription{
-						Title: "First-2",
-						DatabaseGroup: DatabaseGroup{
-							GroupId:   1,
-							GroupType: "test2",
-						}},
-					DatabaseConnConfig: DatabaseConnConfig{
-						Hostname: "localhost",
-						Name:     "db1",
-						Port:     5432,
-						Type:     "postgresql",
-						Username: "postgres",
-						Password: "admin",
-					},
-				},
-				{
-					DatabaseDescription: DatabaseDescription{
-						Title: "Second",
-						DatabaseGroup: DatabaseGroup{
-							GroupId:   2,
-							GroupType: "test1",
-						}},
-					DatabaseConnConfig: DatabaseConnConfig{
-						Hostname: "localhost",
-						Name:     "db2",
-						Port:     5432,
-						Type:     "postgresql",
-						Username: "postgres",
-						Password: "admin",
-					},
-				},
-			},
-			expectedErr: false,
-		},
-
-		{
-			filepath:    filepath.Join("testdata", "doesNotExist.json"),
-			expected:    []DatabaseConfig(nil),
-			expectedErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		data, err := getDatabaseConfigsFromFile(tt.filepath)
-
-		assert.Equal(t, tt.expected, data)
-		if tt.expectedErr {
-			assert.NotNil(t, err)
-		} else {
-			assert.Nil(t, err)
-		}
 	}
 }

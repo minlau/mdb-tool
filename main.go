@@ -37,10 +37,13 @@ func main() {
 		Msg("starting web service")
 
 	r := chi.NewRouter()
+
 	r.Use(middleware.DefaultCompress)
 	r.Use(ZeroLogLogger)
 	r.Use(middleware.Recoverer)
+
 	initHandlers(r, databaseStore)
+
 	err = http.ListenAndServe(fmt.Sprintf(":%d", *port), r)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to start web service. closing app")

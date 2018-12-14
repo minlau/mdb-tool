@@ -211,7 +211,12 @@ func customMapScan(r sqlx.ColScanner, dest *OrderedMap) error {
 			column = column + "__" + strconv.Itoa(i)
 			columns[i] = column
 		}
-		dest.Map[column] = *(values[i].(*interface{}))
+		switch (*(values[i].(*interface{}))).(type) {
+		case []byte: //needed for mysql, some unsupported data types to convert byte array to string
+			dest.Map[column] = string((*(values[i].(*interface{}))).([]byte))
+		default:
+			dest.Map[column] = *(values[i].(*interface{}))
+		}
 	}
 
 	return r.Err()

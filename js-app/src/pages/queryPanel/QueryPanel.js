@@ -157,7 +157,8 @@ export default class QueryPanel extends Component {
                                 let err = response.data.error;
                                 err.groupId = reqParams.groupId;
                                 errors.push(err);
-                            } else if (response.data.data !== null) {
+                            }
+                            if (response.data.data !== null) {
                                 data = response.data.data;
                             }
                         } else {
@@ -166,7 +167,8 @@ export default class QueryPanel extends Component {
                                     let err = element.error;
                                     err.groupId = element.groupId;
                                     errors.push(err)
-                                } else if (element.data !== null) {
+                                }
+                                if (element.data !== null) {
                                     element.data.forEach((e2) => {
                                         e2.groupId = element.groupId;
                                     });

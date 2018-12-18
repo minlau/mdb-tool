@@ -40,13 +40,13 @@ export default class ErrorDialog extends Component {
         const errorsContent = this.state.errors.map(error => {
             return (
                 <div key={error.groupId}>
-                    {error.groupId}. {error.Position != null
-                    ? "Position: " + error.Position + ", "
-                    : ''} Message: {error.Message}
-
-                    <Tooltip content={<div style={{whiteSpace: 'pre'}}>{JSON.stringify(error, null, 4)}</div>}>
+                    {error.groupId}. Message: {error.message}
+                    {error.err !== null && <Tooltip
+                        content={<div style={{whiteSpace: 'pre'}}>
+                            {JSON.stringify(error.err, null, 4)}
+                        </div>}>
                         <Icon style={{paddingLeft: '4px'}} icon="info-sign" intent={Intent.PRIMARY}/>
-                    </Tooltip>
+                    </Tooltip>}
                 </div>
             )
         });

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ func (s *DatabaseStore) AddDatabase(config DatabaseConfig) error {
 func (s *DatabaseStore) QueryDatabase(groupId int, groupType string, query string) GroupQueryResult {
 	if databaseInstance, ok := s.databases[DatabaseGroup{groupId, groupType}]; ok {
 		data, err := queryToMap(databaseInstance.DB, query)
-		return GroupQueryResult{GroupId: groupId, Data: data, Error: err}
+		return GroupQueryResult{GroupId: groupId, Data: data, Error: NewQueryError(err)}
 	} else {
 		return GroupQueryResult{
 			GroupId: groupId,
 			Data:    nil,
-			Error:   errors.Errorf("no database registered with groupId=%d, groupType=%s", groupId, groupType),
+			Error:   NewQueryError(errors.Errorf("no database registered with groupId: %d, groupType: %s", groupId, groupType)),
 		}
 	}
 }
@@ -90,7 +91,7 @@ func (s *DatabaseStore) QueryMultipleDatabases(groupType string, query string) [
 			var groupQueryResult = GroupQueryResult{
 				groupId,
 				result,
-				err,
+				NewQueryError(err),
 			}
 			mutex.Lock()
 			results = append(results, groupQueryResult)
@@ -148,7 +149,22 @@ type DatabaseInstance struct {
 type GroupQueryResult struct {
 	GroupId int          `json:"groupId"`
 	Data    []OrderedMap `json:"data"`
-	Error   error        `json:"error"`
+	Error   *QueryError  `json:"error"`
+}
+
+type QueryError struct {
+	Message string `json:"message"`
+	Err     error  `json:"err"`
+}
+
+func NewQueryError(err error) *QueryError {
+	if err == nil {
+		return nil
+	}
+	if errJson, _ := json.Marshal(err); string(errJson) == "{}" {
+		return &QueryError{Message: err.Error(), Err: nil}
+	}
+	return &QueryError{Message: err.Error(), Err: err}
 }
 
 func queryToMap(db *sqlx.DB, query string) ([]OrderedMap, error) {
@@ -160,7 +176,7 @@ func queryToMap(db *sqlx.DB, query string) ([]OrderedMap, error) {
 	defer func() {
 		if err != nil {
 			rollbackErr := tx.Rollback()
-			if rollbackErr != nil {
+			if rollbackErr != nil && rollbackErr != sql.ErrTxDone {
 				log.Error().Err(rollbackErr).Msg("failed to rollback transaction")
 			}
 		}

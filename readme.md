@@ -15,7 +15,6 @@
  
 ### Known issues
 - Duplicate query result column names are renamed
-- Query error in some cases has no message/data
  
 ## Getting Started
 
@@ -76,5 +75,5 @@ Example:
 Executable requires assets folder and a config file
 
 ``
-mdb --config=databases.json --port=8080
+mdb --config=config.json --port=8080
 ``

@@ -227,6 +227,15 @@ export default class QueryPanel extends Component {
         this.setState({database: value});
     }
 
+    handleQuerySelect(value) {
+        this.setState({
+            queryMode: value.queryMode,
+            groupType: value.groupType,
+            database: value.database,
+            query: value.query
+        });
+    }
+
     render() {
         const containsError = this.state.errors !== null && this.state.errors.length > 0;
         const queryExecutionDisabled = this.state.executingQuery
@@ -298,14 +307,7 @@ export default class QueryPanel extends Component {
 
                         <History
                             className="query-control-elements-right"
-                            onItemSelect={(value) => {
-                                this.setState({
-                                    queryMode: value.queryMode,
-                                    groupType: value.groupType,
-                                    database: value.database,
-                                    query: value.query
-                                });
-                            }}
+                            onItemSelect={this.handleQuerySelect}
                             ref={this.refHandlers.queryHistory}
                         />
 

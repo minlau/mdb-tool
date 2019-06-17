@@ -1,4 +1,4 @@
-import React, {Component} from "react";
+import React, {PureComponent} from "react";
 import {Button, MenuItem} from "@blueprintjs/core";
 import {Select} from "@blueprintjs/select";
 import {highlightText} from "../../utils/select";
@@ -9,7 +9,7 @@ const getQueryLabel = (item) => {
         : ''}`;
 };
 
-export default class History extends Component {
+export default class History extends PureComponent {
 
     constructor(props) {
         super(props);
@@ -41,7 +41,7 @@ export default class History extends Component {
     }
 
     addQuery(timestamp, queryMode, groupType, database, query) {
-        let queries = this.state.queries;
+        let queries = this.state.queries.slice();
         if (queries.length > 0) {
             let lastElement = queries[queries.length - 1];
             if (lastElement.queryMode === queryMode && lastElement.groupType === groupType &&

@@ -54,11 +54,13 @@ export default class DataTable extends PureComponent {
                 <AgGridReact
                     onGridReady={this.autoSizeColumns}
                     onGridColumnsChanged={this.autoSizeColumns}
-                    enableSorting
-                    enableFilter
                     floatingFilter
-                    enableColResize
-                    defaultColDef={{editable: true}}
+                    defaultColDef={{
+                        editable: true,
+                        sortable: true,
+                        filter: true,
+                        resizable: true
+                    }}
                     columnDefs={this.state.columnDefs}
                     rowData={this.props.data}
                 />

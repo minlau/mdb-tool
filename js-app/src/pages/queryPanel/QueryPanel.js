@@ -38,6 +38,8 @@ export default class QueryPanel extends Component {
         this.handleDatabaseSelect = this.handleDatabaseSelect.bind(this);
         this.renderDatabase = this.renderDatabase.bind(this);
 
+        this.handleQuerySelect = this.handleQuerySelect.bind(this);
+
         this.state = {
             queryMode: queryModes[0].value,
             groupTypes: [],

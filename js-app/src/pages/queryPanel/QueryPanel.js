@@ -239,65 +239,43 @@ export default class QueryPanel extends Component {
     }
 
     render() {
-        const containsError = this.state.errors !== null && this.state.errors.length > 0;
-        const queryExecutionDisabled = this.state.executingQuery
-            || (this.state.queryMode === 'single' && this.state.database === null)
-            || this.state.query.length === 0;
+        const {
+            query, queryMode, groupType, groupTypes, databases, database,
+            executingQuery, errors, data
+        } = this.state;
+        const containsError = errors !== null && errors.length > 0;
+        const queryExecutionDisabled = executingQuery
+            || (queryMode === 'single' && database === null)
+            || query.length === 0;
 
         return (
             <div style={{height: '100vh'}} className="flex-container c-children-spacing">
                 <div className="query-editor-container">
-                    <CodeMirror
-                        className="query-editor"
-                        value={this.state.query}
-                        options={{
-                            mode: 'text/x-sql',
-                            theme: 'eclipse',
-                            lineNumbers: true,
-                            scrollbarStyle: 'native'
-                        }}
+                    <QueryEditor
+                        value={query}
                         onBeforeChange={this.handleQueryTextChange}
-                        ref={this.refHandlers.codeMirror}
+                        forwardRef={this.refHandlers.codeMirror}
                     />
 
                     <div className="query-control-elements">
-                        <FormGroup inline label="Query Mode">
-                            <HTMLSelect
-                                value={this.state.queryMode}
-                                onChange={this.handleQueryModeChange}
-                                options={queryModes}
-                            />
-                        </FormGroup>
+                        <QueryModeSelect
+                            value={queryMode}
+                            onChange={this.handleQueryModeChange}
+                        />
 
-                        <FormGroup inline label="Group Type">
-                            <HTMLSelect
-                                value={this.state.groupType}
-                                disabled={this.state.groupTypes === []}
-                                onChange={this.handleGroupTypeChange}
-                                options={this.state.groupTypes}
-                            />
-                        </FormGroup>
+                        <GroupTypeSelect
+                            value={groupType}
+                            onChange={this.handleGroupTypeChange}
+                            options={groupTypes}
+                        />
 
-                        <FormGroup inline label="Database">
-                            <Select
-                                items={this.state.databases}
-                                itemPredicate={QueryPanel.selectItemPredicate}
-                                itemRenderer={this.renderDatabase}
-                                noResults={<MenuItem disabled text="No results."/>}
-                                onItemSelect={this.handleDatabaseSelect}
-                                popoverProps={{minimal: true}}
-                                disabled={this.state.queryMode === "multiple"}
-                            >
-                                <Button
-                                    icon="database"
-                                    text={this.state.database !== null
-                                        ? this.state.database.groupId + ". " + this.state.database.title
-                                        : '-'}
-                                    rightIcon="double-caret-vertical"
-                                    disabled={this.state.queryMode === "multiple"}
-                                />
-                            </Select>
-                        </FormGroup>
+                        <DatabaseSelect
+                            items={databases}
+                            itemRenderer={this.renderDatabase}
+                            onItemSelect={this.handleDatabaseSelect}
+                            disabled={queryMode === "multiple"}
+                            database={database}
+                        />
 
                         <Button
                             className="query-control-elements-right"
@@ -313,7 +291,7 @@ export default class QueryPanel extends Component {
                             ref={this.refHandlers.queryHistory}
                         />
 
-                        {this.state.executingQuery && <Spinner
+                        {executingQuery && <Spinner
                             className={['query-control-elements-right', 'query-executing-spinner']}
                             size={Spinner.SIZE_SMALL}
                         />}
@@ -325,16 +303,67 @@ export default class QueryPanel extends Component {
                             text="Errors"
                         />}
                         {containsError && <ErrorDialog
-                            errors={this.state.errors}
+                            errors={errors}
                             key="QueryErrorDialog"
                             ref={this.refHandlers.errorDialog}
                         />}
                     </div>
                 </div>
 
-                <DataTable data={this.state.data}/>
+                <DataTable data={data}/>
             </div>
         );
     }
 }
 
+const QueryEditor = React.memo((props) => {
+    return <CodeMirror
+        {...props}
+        className="query-editor"
+        options={{
+            mode: 'text/x-sql',
+            theme: 'eclipse',
+            lineNumbers: true,
+            scrollbarStyle: 'native'
+        }}
+        ref={props.forwardRef}
+    />;
+});
+
+const QueryModeSelect = React.memo((props) => {
+    return <FormGroup inline label="Query Mode">
+        <HTMLSelect
+            {...props}
+            options={queryModes}
+        />
+    </FormGroup>;
+});
+
+const GroupTypeSelect = React.memo((props) => {
+    return <FormGroup inline label="Group Type">
+        <HTMLSelect
+            {...props}
+            disabled={props.options === []}
+        />
+    </FormGroup>;
+});
+
+const DatabaseSelect = React.memo((props) => {
+    return <FormGroup inline label="Group Type">
+        <Select
+            {...props}
+            itemPredicate={QueryPanel.selectItemPredicate}
+            noResults={<MenuItem disabled text="No results."/>}
+            popoverProps={{minimal: true}}
+        >
+            <Button
+                icon="database"
+                text={props.database !== null
+                    ? props.database.groupId + ". " + props.database.title
+                    : '-'}
+                rightIcon="double-caret-vertical"
+                disabled={props.disabled}
+            />
+        </Select>
+    </FormGroup>;
+});

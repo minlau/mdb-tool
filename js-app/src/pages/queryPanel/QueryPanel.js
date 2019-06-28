@@ -349,7 +349,7 @@ const GroupTypeSelect = React.memo((props) => {
 });
 
 const DatabaseSelect = React.memo((props) => {
-    return <FormGroup inline label="Group Type">
+    return <FormGroup inline label="Database">
         <Select
             {...props}
             itemPredicate={QueryPanel.selectItemPredicate}

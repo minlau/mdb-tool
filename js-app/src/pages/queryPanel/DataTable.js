@@ -16,19 +16,20 @@ export default class DataTable extends PureComponent {
         if (nextProps.data !== this.props.data) {
             const columns = [];
 
-            if (nextProps.data !== null && nextProps.data.length !== 0) {
-                Object.keys(nextProps.data[0]).forEach((columnName, index) => {
-                    let element = {headerName: columnName, field: columnName};
+            if (nextProps.data !== null && nextProps.data.columns.length !== 0) {
+                nextProps.data.columns.forEach((columnName, index) => {
+                    let element = {
+                        headerName: columnName,
+                        valueGetter: (row) => row.data[index]
+                    };
                     if (columnName === "groupId") {
                         element.sort = 'asc';
                         element.maxWidth = 48;
                         element.type = "numericColumn";
                         element.pinned = "left";
                         element.filter = "agNumberColumnFilter";
-                        columns.unshift(element);
-                    } else {
-                        columns.push(element);
                     }
+                    columns.push(element);
                 });
             }
             this.setState({
@@ -62,7 +63,7 @@ export default class DataTable extends PureComponent {
                         resizable: true
                     }}
                     columnDefs={this.state.columnDefs}
-                    rowData={this.props.data}
+                    rowData={this.props.data.rows}
                 />
             </div>
         );

@@ -48,7 +48,7 @@ export default class QueryPanel extends Component {
             database: null,
             executingQuery: false,
             query: "select now()",
-            data: [],
+            data: {columns: [], rows: []},
             errors: []
         };
 
@@ -151,7 +151,7 @@ export default class QueryPanel extends Component {
         axios.get('/query', {params: reqParams})
             .then(response => {
                     if (response.status === 200) {
-                        let data = [];
+                        let data = {columns: [], rows: []};
                         let errors = [];
 
                         if (singleMode) {
@@ -160,8 +160,8 @@ export default class QueryPanel extends Component {
                                 err.groupId = reqParams.groupId;
                                 errors.push(err);
                             }
-                            if (response.data.data !== null) {
-                                data = response.data.data;
+                            if (response.data.rows !== null) {
+                                data = response.data;
                             }
                         } else {
                             response.data.forEach((element) => {
@@ -171,10 +171,13 @@ export default class QueryPanel extends Component {
                                     errors.push(err)
                                 }
                                 if (element.data !== null) {
-                                    element.data.forEach((e2) => {
-                                        e2.groupId = element.groupId;
+                                    //todo: check if columns are different
+                                    element.data.columns.unshift("groupId");
+                                    element.data.rows.forEach((e2) => {
+                                        e2.unshift(element.groupId);
                                     });
-                                    data.push(...element.data);
+                                    data.columns = element.data.columns;
+                                    data.rows.push(...element.data.rows);
                                 }
                             });
                         }

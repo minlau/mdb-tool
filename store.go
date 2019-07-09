@@ -1,13 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"database/sql"
-	"encoding/json"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	"strconv"
 	"sync"
 )
 
@@ -65,7 +62,7 @@ func (s *DatabaseStore) QueryDatabase(groupId int, groupType string, query strin
 	} else {
 		return GroupQueryResult{
 			GroupId: groupId,
-			Data:    nil,
+			Data:    QueryResult{},
 			Error:   NewQueryError(errors.Errorf("no database registered with groupId: %d, groupType: %s", groupId, groupType)),
 		}
 	}
@@ -111,66 +108,15 @@ func (s *DatabaseStore) GetDatabaseItems() []DatabaseDescription {
 	return arr
 }
 
-type OrderedMap struct {
-	Order []string
-	Map   map[string]interface{}
-}
-
-func (om OrderedMap) MarshalJSON() ([]byte, error) {
-	var b []byte
-	buf := bytes.NewBuffer(b)
-	buf.WriteRune('{')
-	l := len(om.Order)
-	for i, key := range om.Order {
-		km, err := json.Marshal(key)
-		if err != nil {
-			return nil, err
-		}
-		buf.Write(km)
-		buf.WriteRune(':')
-		vm, err := json.Marshal(om.Map[key])
-		if err != nil {
-			return nil, err
-		}
-		buf.Write(vm)
-		if i != l-1 {
-			buf.WriteRune(',')
-		}
-	}
-	buf.WriteRune('}')
-	return buf.Bytes(), nil
-}
-
 type DatabaseInstance struct {
 	Config DatabaseConfig
 	DB     *sqlx.DB
 }
 
-type GroupQueryResult struct {
-	GroupId int          `json:"groupId"`
-	Data    []OrderedMap `json:"data"`
-	Error   *QueryError  `json:"error"`
-}
-
-type QueryError struct {
-	Message string `json:"message"`
-	Err     error  `json:"err"`
-}
-
-func NewQueryError(err error) *QueryError {
-	if err == nil {
-		return nil
-	}
-	if errJson, _ := json.Marshal(err); string(errJson) == "{}" {
-		return &QueryError{Message: err.Error(), Err: nil}
-	}
-	return &QueryError{Message: err.Error(), Err: err}
-}
-
-func queryToMap(db *sqlx.DB, query string) ([]OrderedMap, error) {
+func queryToMap(db *sqlx.DB, query string) (QueryResult, error) {
 	tx, err := db.Begin()
 	if err != nil {
-		return nil, err
+		return QueryResult{}, err
 	}
 
 	defer func() {
@@ -184,16 +130,23 @@ func queryToMap(db *sqlx.DB, query string) ([]OrderedMap, error) {
 
 	rows, err := tx.Query(query)
 	if err != nil {
-		return nil, err
+		return QueryResult{}, err
 	}
-	var data []OrderedMap
+	var data QueryResult
 	for rows.Next() {
-		results := OrderedMap{Map: make(map[string]interface{})}
-		err = customMapScan(rows, &results)
-		if err != nil {
-			return nil, err
+		if len(data.Columns) == 0 {
+			columns, err := rows.Columns()
+			if err != nil {
+				return data, err
+			}
+			data.Columns = columns
 		}
-		data = append(data, results)
+
+		row, err := customMapScan(rows, len(data.Columns))
+		if err != nil {
+			return QueryResult{}, err
+		}
+		data.Rows = append(data.Rows, row)
 	}
 	err = tx.Commit()
 	if err != nil {
@@ -203,37 +156,26 @@ func queryToMap(db *sqlx.DB, query string) ([]OrderedMap, error) {
 }
 
 //copy of sqlx.go func MapScan(r ColScanner, dest map[string]interface{}) error {}
-func customMapScan(r sqlx.ColScanner, dest *OrderedMap) error {
+func customMapScan(r sqlx.ColScanner, columnsLen int) ([]interface{}, error) {
 	// ignore r.started, since we needn't use reflect for anything.
-	columns, err := r.Columns()
-	if err != nil {
-		return err
-	}
-
-	dest.Order = columns
-
-	values := make([]interface{}, len(columns))
+	values := make([]interface{}, columnsLen)
 	for i := range values {
 		values[i] = new(interface{})
 	}
 
-	err = r.Scan(values...)
+	err := r.Scan(values...)
 	if err != nil {
-		return err
+		return values, err
 	}
 
-	for i, column := range columns {
-		if _, ok := dest.Map[column]; ok {
-			column = column + "__" + strconv.Itoa(i)
-			columns[i] = column
-		}
+	for i := 0; i < columnsLen; i++ {
 		switch (*(values[i].(*interface{}))).(type) {
 		case []byte: //needed for mysql, some unsupported data types to convert byte array to string
-			dest.Map[column] = string((*(values[i].(*interface{}))).([]byte))
+			values[i] = string((*(values[i].(*interface{}))).([]byte))
 		default:
-			dest.Map[column] = *(values[i].(*interface{}))
+			values[i] = *(values[i].(*interface{}))
 		}
 	}
 
-	return r.Err()
+	return values, r.Err()
 }

@@ -170,7 +170,9 @@ export default class QueryPanel extends Component {
                                     err.groupId = element.groupId;
                                     errors.push(err)
                                 }
-                                if (element.data !== null) {
+                                if (element.data !== null
+                                    && element.data.columns !== null
+                                    && element.data.rows !== null) {
                                     //todo: check if columns are different
                                     element.data.columns.unshift("groupId");
                                     element.data.rows.forEach((e2) => {

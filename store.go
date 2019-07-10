@@ -62,7 +62,7 @@ func (s *DatabaseStore) QueryDatabase(groupId int, groupType string, query strin
 	} else {
 		return GroupQueryResult{
 			GroupId: groupId,
-			Data:    QueryResult{},
+			Data:    nil,
 			Error:   NewQueryError(errors.Errorf("no database registered with groupId: %d, groupType: %s", groupId, groupType)),
 		}
 	}
@@ -113,10 +113,10 @@ type DatabaseInstance struct {
 	DB     *sqlx.DB
 }
 
-func queryToMap(db *sqlx.DB, query string) (QueryResult, error) {
+func queryToMap(db *sqlx.DB, query string) (*QueryResult, error) {
 	tx, err := db.Begin()
 	if err != nil {
-		return QueryResult{}, err
+		return nil, err
 	}
 
 	defer func() {
@@ -130,29 +130,29 @@ func queryToMap(db *sqlx.DB, query string) (QueryResult, error) {
 
 	rows, err := tx.Query(query)
 	if err != nil {
-		return QueryResult{}, err
+		return nil, err
 	}
-	var data QueryResult
+	var result QueryResult
 	for rows.Next() {
-		if len(data.Columns) == 0 {
+		if len(result.Columns) == 0 {
 			columns, err := rows.Columns()
 			if err != nil {
-				return data, err
+				return &result, err
 			}
-			data.Columns = columns
+			result.Columns = columns
 		}
 
-		row, err := customMapScan(rows, len(data.Columns))
+		row, err := customMapScan(rows, len(result.Columns))
 		if err != nil {
-			return QueryResult{}, err
+			return &result, err
 		}
-		data.Rows = append(data.Rows, row)
+		result.Rows = append(result.Rows, row)
 	}
 	err = tx.Commit()
 	if err != nil {
-		return data, err
+		return &result, err
 	}
-	return data, nil
+	return &result, nil
 }
 
 //copy of sqlx.go func MapScan(r ColScanner, dest map[string]interface{}) error {}

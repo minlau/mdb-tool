@@ -168,17 +168,26 @@ export default class QueryPanel extends Component {
                                 if (element.error !== null) {
                                     let err = element.error;
                                     err.groupId = element.groupId;
-                                    errors.push(err)
+                                    errors.push(err);
                                 }
                                 if (element.data !== null
                                     && element.data.columns !== null
                                     && element.data.rows !== null) {
-                                    //todo: check if columns are different
                                     element.data.columns.unshift("groupId");
-                                    element.data.rows.forEach((e2) => {
-                                        e2.unshift(element.groupId);
-                                    });
-                                    data.columns = element.data.columns;
+                                    if (data.columns.length === 0) {
+                                        data.columns = element.data.columns;
+                                    } else if (element.data.columns.length !== data.columns.length) {
+                                        let err = {
+                                            groupId: element.groupId,
+                                            message: "columns size is not equal",
+                                            err: element.data.columns
+                                        };
+                                        errors.push(err);
+                                    }
+
+                                    for (let i = 0; i < element.data.rows.length; i++) {
+                                        element.data.rows[i].unshift(element.groupId);
+                                    }
                                     data.rows.push(...element.data.rows);
                                 }
                             });

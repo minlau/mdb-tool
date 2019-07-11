@@ -53,7 +53,6 @@ export default class DataTable extends PureComponent {
                 style={{display: 'initial'}}
             >
                 <AgGridReact
-                    onGridReady={this.autoSizeColumns}
                     onGridColumnsChanged={this.autoSizeColumns}
                     floatingFilter
                     defaultColDef={{

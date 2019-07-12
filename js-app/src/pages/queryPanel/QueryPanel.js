@@ -160,8 +160,8 @@ export default class QueryPanel extends Component {
                                 err.groupId = reqParams.groupId;
                                 errors.push(err);
                             }
-                            if (response.data.rows !== null) {
-                                data = response.data;
+                            if (response.data.data.rows !== null) {
+                                data = response.data.data;
                             }
                         } else {
                             response.data.forEach((element) => {

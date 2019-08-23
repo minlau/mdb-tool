@@ -160,7 +160,9 @@ export default class QueryPanel extends Component {
                                 err.groupId = reqParams.groupId;
                                 errors.push(err);
                             }
-                            if (response.data.data.rows !== null) {
+                            if (response.data.data !== null
+                                && response.data.data.rows !== null
+                                && response.data.data.columns !== null) {
                                 data = response.data.data;
                             }
                         } else {
@@ -176,17 +178,23 @@ export default class QueryPanel extends Component {
                                     element.data.columns.unshift("groupId");
                                     if (data.columns.length === 0) {
                                         data.columns = element.data.columns;
-                                    } else if (element.data.columns.length !== data.columns.length) {
-                                        let err = {
-                                            groupId: element.groupId,
-                                            message: "columns size is not equal",
-                                            err: element.data.columns
-                                        };
-                                        errors.push(err);
+                                    } else {
+                                        let missingColumns = element.data.columns.filter(
+                                            item => !data.columns.includes(item)
+                                        );
+                                        if (missingColumns.length > 0) {
+                                            let err = {
+                                                groupId: element.groupId,
+                                                message: "contains new columns",
+                                                err: missingColumns
+                                            };
+                                            errors.push(err);
+                                        }
+                                        data.columns = data.columns.concat(missingColumns);
                                     }
 
                                     for (let i = 0; i < element.data.rows.length; i++) {
-                                        element.data.rows[i].unshift(element.groupId);
+                                        element.data.rows[i].groupId = element.groupId;
                                     }
                                     data.rows.push(...element.data.rows);
                                 }

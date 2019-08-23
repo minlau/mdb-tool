@@ -17,10 +17,10 @@ export default class DataTable extends PureComponent {
             const columns = [];
 
             if (nextProps.data !== null && nextProps.data.columns.length !== 0) {
-                nextProps.data.columns.forEach((columnName, index) => {
+                nextProps.data.columns.forEach((columnName) => {
                     let element = {
                         headerName: columnName,
-                        valueGetter: (row) => row.data[index]
+                        field: columnName
                     };
                     if (columnName === "groupId") {
                         element.sort = 'asc';

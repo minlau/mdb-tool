@@ -11,8 +11,8 @@ type GroupQueryResult struct {
 }
 
 type QueryResult struct {
-	Columns []string        `json:"columns"`
-	Rows    [][]interface{} `json:"rows"`
+	Columns []string                 `json:"columns"`
+	Rows    []map[string]interface{} `json:"rows"`
 }
 
 type QueryError struct {

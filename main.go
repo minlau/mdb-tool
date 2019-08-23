@@ -38,7 +38,7 @@ func main() {
 
 	r := chi.NewRouter()
 
-	r.Use(middleware.DefaultCompress)
+	r.Use(middleware.Compress(1))
 	r.Use(ZeroLogLogger)
 	r.Use(middleware.Recoverer)
 

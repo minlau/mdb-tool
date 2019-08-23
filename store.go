@@ -5,6 +5,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"strconv"
 	"sync"
 )
 
@@ -139,10 +140,22 @@ func queryToMap(db *sqlx.DB, query string) (*QueryResult, error) {
 			if err != nil {
 				return &result, err
 			}
+
+			for i, column := range columns {
+				if contains(columns[:i], column) {
+					for j := 0; j < i; j++ {
+						newColumn := column + "__" + strconv.Itoa(j)
+						if !contains(columns[:i], newColumn) {
+							columns[i] = newColumn
+						}
+					}
+				}
+			}
+
 			result.Columns = columns
 		}
 
-		row, err := customMapScan(rows, len(result.Columns))
+		row, err := customMapScan(rows, result.Columns)
 		if err != nil {
 			return &result, err
 		}
@@ -155,27 +168,37 @@ func queryToMap(db *sqlx.DB, query string) (*QueryResult, error) {
 	return &result, nil
 }
 
-//copy of sqlx.go func MapScan(r ColScanner, dest map[string]interface{}) error {}
-func customMapScan(r sqlx.ColScanner, columnsLen int) ([]interface{}, error) {
+func contains(arr []string, value string) bool {
+	for _, arrValue := range arr {
+		if arrValue == value {
+			return true
+		}
+	}
+	return false
+}
+
+func customMapScan(r sqlx.ColScanner, columns []string) (map[string]interface{}, error) {
 	// ignore r.started, since we needn't use reflect for anything.
-	values := make([]interface{}, columnsLen)
-	for i := range values {
-		values[i] = new(interface{})
+	valuesArr := make([]interface{}, len(columns))
+	for i := range valuesArr {
+		valuesArr[i] = new(interface{})
 	}
 
-	err := r.Scan(values...)
+	valuesMap := make(map[string]interface{})
+
+	err := r.Scan(valuesArr...)
 	if err != nil {
-		return values, err
+		return valuesMap, err
 	}
 
-	for i := 0; i < columnsLen; i++ {
-		switch (*(values[i].(*interface{}))).(type) {
+	for i, column := range columns {
+		switch (*(valuesArr[i].(*interface{}))).(type) {
 		case []byte: //needed for mysql, some unsupported data types to convert byte array to string
-			values[i] = string((*(values[i].(*interface{}))).([]byte))
+			valuesMap[column] = string((*(valuesArr[i].(*interface{}))).([]byte))
 		default:
-			values[i] = *(values[i].(*interface{}))
+			valuesMap[column] = *(valuesArr[i].(*interface{}))
 		}
 	}
 
-	return values, r.Err()
+	return valuesMap, r.Err()
 }

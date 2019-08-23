@@ -17,12 +17,12 @@ export default class DataTable extends PureComponent {
             const columns = [];
 
             if (nextProps.data !== null && nextProps.data.columns.length !== 0) {
-                nextProps.data.columns.forEach((columnName) => {
+                nextProps.data.columns.forEach((column) => {
                     let element = {
-                        headerName: columnName,
-                        field: columnName
+                        headerName: column.name,
+                        field: column.fieldName
                     };
-                    if (columnName === "groupId") {
+                    if (column.name === "groupId") {
                         element.sort = 'asc';
                         element.maxWidth = 48;
                         element.type = "numericColumn";

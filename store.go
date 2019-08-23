@@ -134,28 +134,40 @@ func queryToMap(db *sqlx.DB, query string) (*QueryResult, error) {
 		return nil, err
 	}
 	var result QueryResult
+	fieldNames := make([]string, 0)
 	for rows.Next() {
 		if len(result.Columns) == 0 {
-			columns, err := rows.Columns()
+			columnNames, err := rows.Columns()
 			if err != nil {
 				return &result, err
 			}
 
-			for i, column := range columns {
-				if contains(columns[:i], column) {
+			fieldNames = make([]string, len(columnNames))
+			copy(fieldNames, columnNames)
+			for i, fieldName := range fieldNames {
+				if contains(fieldNames[:i], fieldName) {
 					for j := 0; j < i; j++ {
-						newColumn := column + "__" + strconv.Itoa(j)
-						if !contains(columns[:i], newColumn) {
-							columns[i] = newColumn
+						newFieldName := fieldName + "__" + strconv.Itoa(j+1)
+						if !contains(fieldNames[:i], newFieldName) {
+							fieldNames[i] = newFieldName
+							break
 						}
 					}
 				}
 			}
 
+			columns := make([]Column, 0, len(columnNames))
+			for i := range columnNames {
+				columns = append(columns, Column{
+					Name:      columnNames[i],
+					FieldName: fieldNames[i],
+				})
+			}
+
 			result.Columns = columns
 		}
 
-		row, err := customMapScan(rows, result.Columns)
+		row, err := customMapScan(rows, fieldNames)
 		if err != nil {
 			return &result, err
 		}

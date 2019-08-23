@@ -11,8 +11,13 @@ type GroupQueryResult struct {
 }
 
 type QueryResult struct {
-	Columns []string                 `json:"columns"`
+	Columns []Column                 `json:"columns"`
 	Rows    []map[string]interface{} `json:"rows"`
+}
+
+type Column struct {
+	Name      string `json:"name"`
+	FieldName string `json:"fieldName"`
 }
 
 type QueryError struct {

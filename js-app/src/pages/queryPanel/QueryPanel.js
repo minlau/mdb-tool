@@ -175,12 +175,15 @@ export default class QueryPanel extends Component {
                                 if (element.data !== null
                                     && element.data.columns !== null
                                     && element.data.rows !== null) {
-                                    element.data.columns.unshift("groupId");
+                                    element.data.columns.unshift({name: "groupId", fieldName: "groupId"});
                                     if (data.columns.length === 0) {
                                         data.columns = element.data.columns;
                                     } else {
                                         let missingColumns = element.data.columns.filter(
-                                            item => !data.columns.includes(item)
+                                            newItem => !data.columns.find(
+                                                (oldItem) => oldItem.name === newItem.name
+                                                    && oldItem.fieldName === newItem.fieldName
+                                            )
                                         );
                                         if (missingColumns.length > 0) {
                                             let err = {

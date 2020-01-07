@@ -1,8 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/pkg/errors"
+	"github.com/segmentio/encoding/json"
 	"os"
 )
 

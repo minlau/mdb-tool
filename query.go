@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"github.com/segmentio/encoding/json"
 )
 
 type GroupQueryResult struct {

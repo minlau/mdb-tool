@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 	_ "github.com/nakagami/firebirdsql"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -59,7 +59,7 @@ func (c DatabaseConnConfig) getConnectionUrl() (string, error) {
 func (c DatabaseConnConfig) getDriverName() (string, error) {
 	switch c.Type {
 	case "postgresql":
-		return "postgres", nil
+		return "pgx", nil
 	case "firebird":
 		return "firebirdsql", nil
 	case "mysql":

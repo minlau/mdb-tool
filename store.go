@@ -114,7 +114,7 @@ type DatabaseInstance struct {
 	DB     *sqlx.DB
 }
 
-func queryToMap(db *sqlx.DB, query string) (*QueryResult, error) {
+func queryToMap(db *sqlx.DB, query string) (*QueryData, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
@@ -133,13 +133,13 @@ func queryToMap(db *sqlx.DB, query string) (*QueryResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	var result QueryResult
+	var data QueryData
 	fieldNames := make([]string, 0)
 	for rows.Next() {
-		if len(result.Columns) == 0 {
+		if len(data.Columns) == 0 {
 			columnNames, err := rows.Columns()
 			if err != nil {
-				return &result, err
+				return &data, err
 			}
 
 			fieldNames = make([]string, len(columnNames))
@@ -164,20 +164,20 @@ func queryToMap(db *sqlx.DB, query string) (*QueryResult, error) {
 				})
 			}
 
-			result.Columns = columns
+			data.Columns = columns
 		}
 
 		row, err := customMapScan(rows, fieldNames)
 		if err != nil {
-			return &result, err
+			return &data, err
 		}
-		result.Rows = append(result.Rows, row)
+		data.Rows = append(data.Rows, row)
 	}
 	err = tx.Commit()
 	if err != nil {
-		return &result, err
+		return &data, err
 	}
-	return &result, nil
+	return &data, nil
 }
 
 func contains(arr []string, value string) bool {

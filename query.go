@@ -5,12 +5,12 @@ import (
 )
 
 type GroupQueryResult struct {
-	GroupId int          `json:"groupId"`
-	Data    *QueryResult `json:"data"`
-	Error   *QueryError  `json:"error"`
+	GroupId int         `json:"groupId"`
+	Data    *QueryData  `json:"data"`
+	Error   *QueryError `json:"error"`
 }
 
-type QueryResult struct {
+type QueryData struct {
 	Columns []Column                 `json:"columns"`
 	Rows    []map[string]interface{} `json:"rows"`
 }

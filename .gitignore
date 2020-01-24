@@ -7,3 +7,6 @@
 .idea
 
 .vscode
+
+# executable
+mdb-tool*

@@ -84,6 +84,7 @@ func (c DatabaseConnConfig) OpenDatabase() (*sqlx.DB, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to connect to database. config=%#v", c)
 	}
+	db.SetMaxIdleConns(1)
 	return db, nil
 }
 

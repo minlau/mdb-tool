@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/stdlib"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/nakagami/firebirdsql"
 	"github.com/pkg/errors"
@@ -80,9 +81,22 @@ func (c DatabaseConnConfig) OpenDatabase() (*sqlx.DB, error) {
 		return nil, err
 	}
 
-	db, err := sqlx.Connect(driverName, connectionUrl)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to connect to database. config=%#v", c)
+	var db *sqlx.DB
+	if driverName == "pgx" {
+		connConfig, err := pgx.ParseConfig(connectionUrl)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse pgx config. config=%#v", c)
+		}
+		//disable implicit prepared statement to enable execution of multiple queries at once
+		connConfig.PreferSimpleProtocol = true
+
+		openDB := stdlib.OpenDB(*connConfig)
+		db = sqlx.NewDb(openDB, driverName)
+	} else {
+		db, err = sqlx.Connect(driverName, connectionUrl)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to connect to database. config=%#v", c)
+		}
 	}
 	db.SetMaxIdleConns(1)
 	return db, nil

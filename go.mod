@@ -12,10 +12,10 @@ require (
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.18.0
-	github.com/segmentio/encoding v0.1.10
-	github.com/shopspring/decimal v0.0.0-20200227202807-02e2044944cc // indirect
+	github.com/segmentio/encoding v0.1.11
+	github.com/shopspring/decimal v0.0.0-20200419222939-1884f454f8ea // indirect
 	github.com/stretchr/testify v1.5.1
-	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904 // indirect
+	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5 // indirect
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect

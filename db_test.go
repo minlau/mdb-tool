@@ -7,10 +7,10 @@ import (
 )
 
 func TestGetConnectionUrl(t *testing.T) {
-	var tests = []struct {
-		config      DatabaseConnConfig
-		expected    string
-		expectedErr error
+	tests := []struct {
+		config  DatabaseConnConfig
+		want    string
+		wantErr error
 	}{
 		{
 			DatabaseConnConfig{
@@ -63,24 +63,24 @@ func TestGetConnectionUrl(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		url, err := tt.config.getConnectionUrl()
+		url, err := getConnectionUrl(tt.config)
 
-		assert.Equal(t, tt.expected, url)
-		assert.IsType(t, tt.expectedErr, err)
+		assert.Equal(t, tt.want, url)
+		assert.IsType(t, tt.wantErr, err)
 	}
 }
 
 func TestGetDriverName(t *testing.T) {
-	var tests = []struct {
-		config      DatabaseConnConfig
-		expected    string
-		expectedErr error
+	tests := []struct {
+		config  DatabaseConnConfig
+		want    string
+		wantErr error
 	}{
 		{
 			DatabaseConnConfig{
 				Type: "postgresql",
 			},
-			"postgres",
+			"pgx",
 			nil,
 		},
 		{
@@ -107,9 +107,57 @@ func TestGetDriverName(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		url, err := tt.config.getDriverName()
+		url, err := getDriverName(tt.config)
 
-		assert.Equal(t, tt.expected, url)
-		assert.IsType(t, tt.expectedErr, err)
+		assert.Equal(t, tt.want, url)
+		assert.IsType(t, tt.wantErr, err)
+	}
+}
+
+func TestOpenDatabase(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     DatabaseConnConfig
+		want    bool
+		wantErr bool
+	}{
+		{
+			"connects to db",
+			DatabaseConnConfig{
+				Hostname: "localhost",
+				Name:     "test",
+				Port:     5432,
+				Type:     "postgresql",
+				Username: "postgres",
+				Password: "admin",
+			},
+			true,
+			false,
+		},
+		{
+			"fails to connect to db",
+			DatabaseConnConfig{
+				Hostname: "localhost",
+				Name:     "test-does-not-exist",
+				Port:     5432,
+				Type:     "postgresql",
+				Username: "postgres",
+				Password: "admin",
+			},
+			false,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := OpenDatabase(tt.cfg)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("OpenDatabase() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if (got != nil) != tt.want {
+				t.Errorf("OpenDatabase() got = %v, want not nil", got)
+			}
+		})
 	}
 }

@@ -43,7 +43,7 @@ func (s *DatabaseStore) AddDatabase(config DatabaseConfig) error {
 	s.databases[config.DatabaseGroup] = DatabaseInstance{}
 	s.m.Unlock()
 
-	db, err := config.DatabaseConnConfig.OpenDatabase()
+	db, err := OpenDatabase(config.DatabaseConnConfig)
 	if err != nil {
 		s.m.Lock()
 		delete(s.databases, config.DatabaseGroup)
@@ -54,6 +54,85 @@ func (s *DatabaseStore) AddDatabase(config DatabaseConfig) error {
 	s.databases[config.DatabaseGroup] = DatabaseInstance{config, db}
 	s.m.Unlock()
 	return nil
+}
+
+var selectPgTablesMetadata = `
+SELECT
+    t.table_name, c.column_name
+FROM
+    information_schema.tables AS t
+    INNER JOIN information_schema.columns AS c ON t.table_name = c.table_name
+WHERE
+    t.table_schema = current_schema() AND t.table_type = 'BASE TABLE';
+`
+var selectFbTablesMetadata = `
+SELECT
+    f.rdb$relation_name AS table_name, f.rdb$field_name AS column_name
+FROM
+    rdb$relation_fields AS f
+    JOIN rdb$relations AS r ON
+            f.rdb$relation_name = r.rdb$relation_name
+            AND r.rdb$view_blr IS NULL
+            AND (r.rdb$system_flag IS NULL OR r.rdb$system_flag = 0)
+ORDER BY
+    1, f.rdb$field_position;
+`
+var selectMySqlTablesMetadata = `
+SELECT
+    table_name, column_name
+FROM
+    information_schema.columns
+WHERE
+    table_schema = database()
+ORDER BY
+    table_name, ordinal_position;
+`
+
+func getTablesMetadataSql(sqlType string) string {
+	switch sqlType {
+	case "postgresql":
+		return selectPgTablesMetadata
+	case "firebird":
+		return selectFbTablesMetadata
+	case "mysql":
+		return selectMySqlTablesMetadata
+	default:
+		return ""
+	}
+}
+
+func queryTablesMetadata(db *sqlx.DB, query string) (map[string][]string, error) {
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	data := make(map[string][]string)
+	for rows.Next() {
+		var tableName string
+		var columnName string
+		err := rows.Scan(&tableName, &columnName)
+		if err != nil {
+			return nil, err
+		}
+
+		if val, ok := data[tableName]; ok {
+			data[tableName] = append(val, columnName)
+		} else {
+			data[tableName] = []string{columnName}
+		}
+	}
+	return data, nil
+}
+
+func (s *DatabaseStore) GetTablesMetadata(groupId int, groupType string) (map[string][]string, error) {
+	if databaseInstance, ok := s.databases[DatabaseGroup{groupId, groupType}]; ok {
+		sqlType := databaseInstance.Config.Type
+		query := getTablesMetadataSql(sqlType)
+		data, err := queryTablesMetadata(databaseInstance.DB, query)
+		return data, err
+	} else {
+		return nil, errors.Errorf("no database registered with groupId: %d, groupType: %s", groupId, groupType)
+	}
 }
 
 func (s *DatabaseStore) QueryDatabase(groupId int, groupType string, query string) GroupQueryResult {
@@ -101,10 +180,18 @@ func (s *DatabaseStore) QueryMultipleDatabases(groupType string, query string) [
 	return results
 }
 
-func (s *DatabaseStore) GetDatabaseItems() []DatabaseDescription {
-	arr := make([]DatabaseDescription, 0, len(s.databases))
+type DatabaseItem struct {
+	DatabaseDescription
+	Type string `json:"type"`
+}
+
+func (s *DatabaseStore) GetDatabaseItems() []DatabaseItem {
+	arr := make([]DatabaseItem, 0, len(s.databases))
 	for _, value := range s.databases {
-		arr = append(arr, value.Config.DatabaseDescription)
+		arr = append(arr, DatabaseItem{
+			DatabaseDescription: value.Config.DatabaseDescription,
+			Type:                value.Config.Type,
+		})
 	}
 	return arr
 }

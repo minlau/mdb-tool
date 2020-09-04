@@ -7,6 +7,9 @@ import {Controlled as CodeMirror} from 'react-codemirror2'
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/eclipse.css';
 import 'codemirror/mode/sql/sql';
+import 'codemirror/addon/hint/show-hint';
+import 'codemirror/addon/hint/sql-hint';
+import 'codemirror/addon/hint/show-hint.css';
 
 import DataTable from "./DataTable";
 import History from "./History";
@@ -27,7 +30,9 @@ export default class QueryPanel extends Component {
             queryHistory: (ref) => this.queryHistory = ref
         };
 
-        this.initializeData = this.initializeData.bind(this);
+        this.initDatabases = this.initDatabases.bind(this);
+        this.initTablesMetadata = this.initTablesMetadata.bind(this);
+
         this.handleQueryTextChange = this.handleQueryTextChange.bind(this);
         this.handleExecuteClick = this.handleExecuteClick.bind(this);
         this.handleErrorClick = this.handleErrorClick.bind(this);
@@ -42,24 +47,183 @@ export default class QueryPanel extends Component {
 
         this.state = {
             queryMode: queryModes[0].value,
-            groupTypes: [],
             groupType: "",
-            databases: [],
             database: null,
             executingQuery: false,
             query: "select now()",
             data: {columns: [], rows: []},
-            errors: []
+            errors: [],
+
+            groupTypes: [],
+            databases: [],
+
+            sqlTypeMode: null,
+            tablesMetadata: null,
         };
 
-        this.initializeData();
+        this.initDatabases();
     }
 
     static selectItemPredicate(query, item) {
         return `${item.groupId}. ${item.title} ${item.groupType}`.toLowerCase().indexOf(query.toLowerCase()) >= 0;
     }
 
-    initializeData() {
+    static getSqlTypeMode(sqlType) {
+        switch (sqlType) {
+            case 'postgresql':
+                return 'text/x-pgsql';
+            case 'mysql':
+                return 'text/x-mysql';
+            default:
+                return 'text/x-sql';
+        }
+    }
+
+    static getSqlType(queryMode, groupType, database, databases) {
+        if (queryMode === queryModes[1].value) {
+            if (database !== null) {
+                return database.type;
+            }
+            return null;
+        } else {
+            const types = new Set();
+            databases.forEach(function (item) {
+                if (groupType === item.groupType) {
+                    types.add(item.type);
+                }
+            });
+            if (types.size === 1) {
+                return types.values().next().value
+            }
+            return null;
+        }
+    }
+
+    static getTablesMetadata(queryMode, groupType, database, databases) {
+        //single database mode
+        if (queryMode === queryModes[1].value) {
+            if (database === null) {
+                return null;
+            }
+            return database.tablesMetadata;
+        }
+
+        //multiple database mode
+        function mergeUnique(arr1, arr2) {
+            return arr1.concat(arr2.filter(function (item) {
+                return arr1.indexOf(item) === -1;
+            }));
+        }
+
+        let joinedTablesMetadata = {};
+        databases.forEach(function (item) {
+            if (item.groupType !== groupType) {
+                return;
+            }
+            if (item.tablesMetadata === undefined) {
+                return;
+            }
+
+            for (const [key, value] of Object.entries(item.tablesMetadata)) {
+                if (joinedTablesMetadata[key] === undefined) {
+                    joinedTablesMetadata[key] = value;
+                } else {
+                    joinedTablesMetadata[key] = mergeUnique(joinedTablesMetadata[key], value);
+                }
+            }
+        });
+        return joinedTablesMetadata;
+    }
+
+    setState(state, callback) {
+        if (state.queryMode !== undefined
+            || state.groupType !== undefined
+            || state.database !== undefined
+            || state.databases !== undefined) {
+            let oldState = {
+                queryMode: this.state.queryMode,
+                groupType: this.state.groupType,
+                database: this.state.database,
+                databases: this.state.databases,
+                tablesMetadata: this.state.tablesMetadata,
+            }
+            let mergedState = {...oldState, ...state}
+            state.sqlTypeMode = QueryPanel.getSqlTypeMode(QueryPanel.getSqlType(
+                mergedState.queryMode,
+                mergedState.groupType,
+                mergedState.database,
+                mergedState.databases
+            ));
+            state.tablesMetadata = QueryPanel.getTablesMetadata(
+                mergedState.queryMode,
+                mergedState.groupType,
+                mergedState.database,
+                mergedState.databases
+            );
+        }
+        super.setState(state, callback);
+    }
+
+    initTablesMetadata() {
+        const {queryMode, groupType, database, databases} = this.state;
+        if (queryMode === queryModes[1].value) {
+            if (database == null) {
+                return null;
+            }
+            if (database.tablesMetadata !== undefined) {
+                return;
+            }
+
+            let tablesMetadata = this.getDatabaseTablesMetadata(database.groupId, database.groupType);
+            tablesMetadata.then(data => {
+                database.tablesMetadata = data;
+                this.setState({
+                    database: database
+                });
+            });
+        } else {
+            let requests = [];
+            databases.forEach((item) => {
+                if (groupType !== item.groupType) {
+                    return;
+                }
+                if (item.tablesMetadata !== undefined) {
+                    return;
+                }
+
+                let tablesMetadataPromise = this.getDatabaseTablesMetadata(item.groupId, item.groupType);
+                requests.push(tablesMetadataPromise.then(data => {
+                    item.tablesMetadata = data;
+                }));
+            })
+
+            if (requests.length === 0) {
+                return;
+            }
+
+            Promise.all(requests).then((values) => {
+                this.setState({
+                    databases: databases
+                });
+            });
+        }
+    }
+
+    getDatabaseTablesMetadata(groupId, groupType) {
+        return axios.get('/tables-metadata', {params: {groupId: groupId, groupType: groupType}})
+            .then(response => {
+                if (response.status === 200) {
+                    if (response.data !== null) {
+                        return response.data;
+                    }
+                } else {
+                    console.error("request error", response);
+                    return null;
+                }
+            });
+    }
+
+    initDatabases() {
         axios.get('/databases')
             .then(response => {
                 if (response.status === 200) {
@@ -185,6 +349,23 @@ export default class QueryPanel extends Component {
                                                     && oldItem.fieldName === newItem.fieldName
                                             )
                                         );
+                                        if (missingColumns.length === 0
+                                            && element.data.columns.length !== data.columns.length) {
+                                            let newColumns = data.columns.filter(
+                                                newItem => !element.data.columns.find(
+                                                    (oldItem) => oldItem.name === newItem.name
+                                                        && oldItem.fieldName === newItem.fieldName
+                                                )
+                                            );
+                                            if (newColumns.length > 0) {
+                                                let err = {
+                                                    groupId: element.groupId,
+                                                    message: "contains new columns",
+                                                    err: missingColumns
+                                                };
+                                                errors.push(err);
+                                            }
+                                        }
                                         if (missingColumns.length > 0) {
                                             let err = {
                                                 groupId: element.groupId,
@@ -196,9 +377,9 @@ export default class QueryPanel extends Component {
                                         data.columns = data.columns.concat(missingColumns);
                                     }
 
-                                    for (let i = 0; i < element.data.rows.length; i++) {
-                                        element.data.rows[i].groupId = element.groupId;
-                                    }
+                                    element.data.rows.forEach(row => {
+                                        row.groupId = element.groupId;
+                                    })
                                     data.rows.push(...element.data.rows);
                                 }
                             });
@@ -246,7 +427,7 @@ export default class QueryPanel extends Component {
 
         this.setState({
             groupType: event.currentTarget.value,
-            database: selectedDatabase
+            database: selectedDatabase,
         });
     }
 
@@ -266,7 +447,7 @@ export default class QueryPanel extends Component {
     render() {
         const {
             query, queryMode, groupType, groupTypes, databases, database,
-            executingQuery, errors, data
+            executingQuery, errors, data, sqlTypeMode, tablesMetadata
         } = this.state;
         const containsError = errors !== null && errors.length > 0;
         const queryExecutionDisabled = executingQuery
@@ -280,6 +461,9 @@ export default class QueryPanel extends Component {
                         value={query}
                         onBeforeChange={this.handleQueryTextChange}
                         forwardRef={this.refHandlers.codeMirror}
+                        sqlTypeMode={sqlTypeMode}
+                        tablesMetadata={tablesMetadata}
+                        onAutocomplete={this.initTablesMetadata}
                     />
 
                     <div className="query-control-elements">
@@ -342,16 +526,27 @@ export default class QueryPanel extends Component {
 }
 
 const QueryEditor = React.memo((props) => {
+    const {forwardRef, sqlTypeMode, tablesMetadata, onAutocomplete, ...newProps} = props;
     return <CodeMirror
-        {...props}
+        {...newProps}
         className="query-editor"
         options={{
-            mode: 'text/x-sql',
+            mode: sqlTypeMode,
             theme: 'eclipse',
             lineNumbers: true,
-            scrollbarStyle: 'native'
+            scrollbarStyle: 'native',
+            extraKeys: {
+                "Ctrl-Space": ((cm, eventObj) => {
+                    cm.execCommand('autocomplete');
+                    onAutocomplete();
+                })
+            },
+            closeOnUnfocus: false,
+            hintOptions: {
+                tables: tablesMetadata
+            }
         }}
-        ref={props.forwardRef}
+        ref={forwardRef}
     />;
 });
 

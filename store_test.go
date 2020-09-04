@@ -1,7 +1,9 @@
 package main
 
 import (
+	stdjson "encoding/json"
 	"fmt"
+	iterJson "github.com/json-iterator/go"
 	"github.com/segmentio/encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -9,7 +11,22 @@ import (
 	"testing"
 )
 
-const benchQuery = "select * from messages limit 100000"
+const benchPrepareSchema = `
+CREATE TABLE messages (
+    id integer NOT NULL,
+    text character varying(10000) NOT NULL,
+    is_read boolean NOT NULL DEFAULT false,
+    sender_id integer NOT NULL,
+    receiver_id integer NOT NULL,
+    create_date timestamp with time zone NOT NULL DEFAULT now(),
+    CONSTRAINT messages_pk PRIMARY KEY (id)
+)
+`
+const benchGenerateData = `
+INSERT INTO messages(id, text, is_read, sender_id, receiver_id, create_date) 
+SELECT gen, 'gen'||gen, false, 0, 0, now() from generate_series(1,100000) gen
+`
+const benchQuery = `select * from messages limit 100000`
 const benchGroupType = "main-db"
 
 func initDatabaseStore() *DatabaseStore {
@@ -26,6 +43,36 @@ func initDatabaseStore() *DatabaseStore {
 	return databaseStore
 }
 
+func BenchmarkEncodeJson(b *testing.B) {
+	databaseStore := initDatabaseStore()
+	data := databaseStore.QueryMultipleDatabases(benchGroupType, benchQuery)
+	b.ResetTimer()
+	b.Run("segmentio/encoding/json", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			if json, err := json.Marshal(data); err != nil || len(json) == 0 {
+				panic("marshal error: " + err.Error())
+			}
+		}
+	})
+	b.Run("json-iterator/go", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			if json, err := iterJson.Marshal(data); err != nil || len(json) == 0 {
+				panic("marshal error: " + err.Error())
+			}
+		}
+	})
+	b.Run("encoding/json", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			if json, err := stdjson.Marshal(data); err != nil || len(json) == 0 {
+				panic("marshal error: " + err.Error())
+			}
+		}
+	})
+}
+
 func BenchmarkQuery(b *testing.B) {
 	databaseStore := initDatabaseStore()
 	b.ResetTimer()
@@ -37,21 +84,10 @@ func BenchmarkQuery(b *testing.B) {
 	}
 }
 
-func BenchmarkQueryAndJSON(b *testing.B) {
-	databaseStore := initDatabaseStore()
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		json, _ := json.Marshal(databaseStore.QueryMultipleDatabases(benchGroupType, benchQuery))
-		if json != nil {
-			continue
-		}
-	}
-}
-
-func BenchmarkRequestQuery(b *testing.B) {
+func BenchmarkRequest(b *testing.B) {
 	u, err := url.Parse("localhost/query")
 	if err != nil {
-		fmt.Errorf("failed to parse url. %e", err)
+		b.Fatalf("failed to parse url. %e", err)
 	}
 	q := u.Query()
 	q.Set("groupType", benchGroupType)
@@ -60,7 +96,7 @@ func BenchmarkRequestQuery(b *testing.B) {
 
 	req, err := http.NewRequest("GET", u.RequestURI(), nil)
 	if err != nil {
-		fmt.Errorf("failed to create new request. %e", err)
+		b.Fatalf("failed to create new request. %e", err)
 	}
 
 	databaseStore := initDatabaseStore()
@@ -70,7 +106,7 @@ func BenchmarkRequestQuery(b *testing.B) {
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 		if rr.Code != 200 {
-			fmt.Errorf("code is not 200. %d", rr.Code)
+			b.Errorf("code is not 200. %d", rr.Code)
 		}
 	}
 }

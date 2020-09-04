@@ -12,6 +12,7 @@ func initHandlers(r *chi.Mux, store *DatabaseStore) {
 	ServeFile(r, "/", "./assets/index.html")
 	ServeFiles(r, "/assets", http.Dir("./assets"))
 	r.Get("/databases", getDatabases(store))
+	r.Get("/tables-metadata", getTablesMetadata(store))
 	r.Get("/query", query(store))
 }
 
@@ -49,9 +50,9 @@ func ServeFile(r chi.Router, path string, file string) {
 }
 
 type queryRequest struct {
-	GroupId   *int   `form:"groupId" json:"groupId"`
-	GroupType string `form:"groupType" json:"groupType" binding:"required"`
-	Query     string `form:"query" json:"query" binding:"required"`
+	GroupId   *int
+	GroupType string
+	Query     string
 }
 
 func query(store *DatabaseStore) http.HandlerFunc {
@@ -78,7 +79,7 @@ func query(store *DatabaseStore) http.HandlerFunc {
 		req.GroupType = r.URL.Query().Get("groupType")
 		if req.GroupType == "" {
 			render.Status(r, http.StatusBadRequest)
-			render.JSON(w, r, render.M{"error": "type is required"})
+			render.JSON(w, r, render.M{"error": "groupType is required"})
 			return
 		}
 
@@ -89,6 +90,47 @@ func query(store *DatabaseStore) http.HandlerFunc {
 			render.Status(r, http.StatusOK)
 			render.JSON(w, r, store.QueryDatabase(*req.GroupId, req.GroupType, req.Query))
 		}
+	}
+}
+
+type tablesMetadataRequest struct {
+	GroupId   int
+	GroupType string
+}
+
+func getTablesMetadata(store *DatabaseStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req tablesMetadataRequest
+		groupIdString := r.URL.Query().Get("groupId")
+		if groupIdString == "" {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, render.M{"error": "groupId is required"})
+			return
+		}
+		groupIdInt, err := strconv.Atoi(groupIdString)
+		if err != nil {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, render.M{"error": err.Error()})
+			return
+		}
+		req.GroupId = groupIdInt
+
+		req.GroupType = r.URL.Query().Get("groupType")
+		if req.GroupType == "" {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, render.M{"error": "groupType is required"})
+			return
+		}
+
+		data, err := store.GetTablesMetadata(req.GroupId, req.GroupType)
+		if err != nil {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, render.M{"error": err.Error()})
+			return
+		}
+
+		render.Status(r, http.StatusOK)
+		render.JSON(w, r, data)
 	}
 }
 

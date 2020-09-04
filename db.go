@@ -10,11 +10,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"sync"
+	"time"
 )
 
 type DataSource struct {
-	Query string
 	DatabaseConnConfig
+	Query string
 }
 
 type DatabaseConfig struct {
@@ -23,8 +24,8 @@ type DatabaseConfig struct {
 }
 
 type DatabaseDescription struct {
-	Title string `json:"title"`
 	DatabaseGroup
+	Title string `json:"title"`
 }
 
 type DatabaseGroup struct {
@@ -41,7 +42,7 @@ type DatabaseConnConfig struct {
 	Type     string `db:"type"`
 }
 
-func (c DatabaseConnConfig) getConnectionUrl() (string, error) {
+func getConnectionUrl(c DatabaseConnConfig) (string, error) {
 	switch c.Type {
 	case "postgresql":
 		return fmt.Sprintf("user=%s password=%s host=%s port=%d dbname=%s sslmode=disable",
@@ -57,7 +58,7 @@ func (c DatabaseConnConfig) getConnectionUrl() (string, error) {
 	}
 }
 
-func (c DatabaseConnConfig) getDriverName() (string, error) {
+func getDriverName(c DatabaseConnConfig) (string, error) {
 	switch c.Type {
 	case "postgresql":
 		return "pgx", nil
@@ -70,13 +71,13 @@ func (c DatabaseConnConfig) getDriverName() (string, error) {
 	}
 }
 
-func (c DatabaseConnConfig) OpenDatabase() (*sqlx.DB, error) {
-	driverName, err := c.getDriverName()
+func OpenDatabase(c DatabaseConnConfig) (*sqlx.DB, error) {
+	driverName, err := getDriverName(c)
 	if err != nil {
 		return nil, err
 	}
 
-	connectionUrl, err := c.getConnectionUrl()
+	connectionUrl, err := getConnectionUrl(c)
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +93,10 @@ func (c DatabaseConnConfig) OpenDatabase() (*sqlx.DB, error) {
 
 		openDB := stdlib.OpenDB(*connConfig)
 		db = sqlx.NewDb(openDB, driverName)
+		err = db.Ping()
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		db, err = sqlx.Connect(driverName, connectionUrl)
 		if err != nil {
@@ -99,6 +104,7 @@ func (c DatabaseConnConfig) OpenDatabase() (*sqlx.DB, error) {
 		}
 	}
 	db.SetMaxIdleConns(1)
+	db.SetConnMaxLifetime(5 * time.Minute)
 	return db, nil
 }
 
@@ -126,7 +132,7 @@ func GetDatabaseConfigsFromDataSources(dataSources []DataSource) []DatabaseConfi
 }
 
 func GetDatabaseConfigsFromDataSource(dataSource DataSource) ([]DatabaseConfig, error) {
-	db, err := dataSource.DatabaseConnConfig.OpenDatabase()
+	db, err := OpenDatabase(dataSource.DatabaseConnConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to open database")
 	}

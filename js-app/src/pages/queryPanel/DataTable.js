@@ -55,6 +55,8 @@ export default class DataTable extends PureComponent {
                 <AgGridReact
                     onGridColumnsChanged={this.autoSizeColumns}
                     floatingFilter
+                    pagination={true}
+                    paginationPageSize={10000}
                     defaultColDef={{
                         editable: true,
                         sortable: true,

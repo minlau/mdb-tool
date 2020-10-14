@@ -51,7 +51,7 @@ func getConnectionUrl(c DatabaseConnConfig) (string, error) {
 		return fmt.Sprintf("%s:%s@%s:%d/%s",
 			c.Username, c.Password, c.Hostname, c.Port, c.Name), nil
 	case "mysql":
-		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?multiStatements=true",
 			c.Username, c.Password, c.Hostname, c.Port, c.Name), nil
 	default:
 		return "", errors.Errorf("unknown type: %s", c.Type)
@@ -95,7 +95,7 @@ func OpenDatabase(c DatabaseConnConfig) (*sqlx.DB, error) {
 		db = sqlx.NewDb(openDB, driverName)
 		err = db.Ping()
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to connect to database. config=%#v", c)
 		}
 	} else {
 		db, err = sqlx.Connect(driverName, connectionUrl)
@@ -116,15 +116,17 @@ func GetDatabaseConfigsFromDataSources(dataSources []DataSource) []DatabaseConfi
 	for _, item := range dataSources {
 		wg.Add(1)
 		go func(dataSource DataSource) {
+			defer wg.Done()
+
 			configs, err := GetDatabaseConfigsFromDataSource(dataSource)
 			if err != nil {
 				log.Warn().Err(err).Msg("failed to get database configs from db")
-			} else {
-				mutex.Lock()
-				databaseConfigs = append(databaseConfigs, configs...)
-				mutex.Unlock()
+				return
 			}
-			wg.Done()
+
+			mutex.Lock()
+			defer mutex.Unlock()
+			databaseConfigs = append(databaseConfigs, configs...)
 		}(item)
 	}
 	wg.Wait()

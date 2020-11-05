@@ -4,8 +4,8 @@
 # js build
 /assets
 
+# IDE folders
 .idea
-
 .vscode
 
 # executable

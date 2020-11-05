@@ -15,6 +15,7 @@ func main() {
 	flag.Parse()
 
 	initLogger()
+
 	log.Info().Msg("starting app")
 
 	config, err := readConfig(*configFilePath)
@@ -32,21 +33,24 @@ func main() {
 
 	log.Info().Msg("finished databases initialization")
 
-	log.Info().
-		Int("port", *port).
-		Msg("starting web service")
+	log.Info().Msg("starting handlers initialization")
 
 	r := chi.NewRouter()
-
 	r.Use(middleware.Compress(1))
 	r.Use(ZeroLogLogger)
 	r.Use(middleware.Recoverer)
 
 	initHandlers(r, databaseStore)
 
+	log.Info().Msg("finished handlers initialization")
+
+	log.Info().
+		Int("port", *port).
+		Msg("starting http server")
+
 	err = http.ListenAndServe(fmt.Sprintf(":%d", *port), r)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to start web service. closing app")
+		log.Error().Err(err).Msg("failed to start http server")
 		return
 	}
 }

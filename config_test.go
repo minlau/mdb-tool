@@ -16,13 +16,13 @@ func Test_readConfig(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"read config file",
+			"valid file",
 			args{path: "test/config.json"},
-			&Config{DataSources: []DataSource{{Query: "select 1", DatabaseConnConfig: DatabaseConnConfig{Hostname: "localhost", Port: 5432, Name: "test-non-existing-1", Username: "postgres", Password: "admin", Type: "postgresql"}}}, DatabaseConfigs: []DatabaseConfig{{DatabaseDescription: DatabaseDescription{Title: "test 1", DatabaseGroup: DatabaseGroup{GroupId: 1, GroupType: "test-db"}}, DatabaseConnConfig: DatabaseConnConfig{Hostname: "localhost", Port: 5432, Name: "test-non-existing-1", Username: "postgres", Password: "admin", Type: "postgresql"}}, {DatabaseDescription: DatabaseDescription{Title: "test 2", DatabaseGroup: DatabaseGroup{GroupId: 1, GroupType: "test-db"}}, DatabaseConnConfig: DatabaseConnConfig{Hostname: "localhost", Port: 5432, Name: "test-non-existing-2", Username: "postgres", Password: "admin", Type: "postgresql"}}}},
+			&Config{DataSources: []DataSource{{Query: "select 1", DatabaseConnConfig: DatabaseConnConfig{Hostname: "localhost", Port: 5432, Name: "test-non-existing-1", Username: "postgres", Password: "admin", Type: "postgresql"}}}, DatabaseConfigs: []DatabaseConfig{{DatabaseDescription: DatabaseDescription{Title: "test 1", DatabaseGroup: DatabaseGroup{GroupId: 1, GroupType: "test-db"}}, DatabaseConnConfig: DatabaseConnConfig{Hostname: "localhost", Port: 5432, Name: "test-non-existing-1", Username: "postgres", Password: "admin", Type: "postgresql"}}, {DatabaseDescription: DatabaseDescription{Title: "test 2", DatabaseGroup: DatabaseGroup{GroupId: 2, GroupType: "test-db"}}, DatabaseConnConfig: DatabaseConnConfig{Hostname: "localhost", Port: 5432, Name: "test-non-existing-2", Username: "postgres", Password: "admin", Type: "postgresql"}}}},
 			false,
 		},
 		{
-			"read non existing config file",
+			"non existing file",
 			args{path: "test/config_non_existing.json"},
 			nil,
 			true,

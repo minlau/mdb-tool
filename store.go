@@ -9,6 +9,11 @@ import (
 	"sync"
 )
 
+type DatabaseInstance struct {
+	Config DatabaseConfig
+	DB     *sqlx.DB
+}
+
 type DatabaseStore struct {
 	m         *sync.Mutex
 	databases map[DatabaseGroup]DatabaseInstance
@@ -137,7 +142,7 @@ func (s *DatabaseStore) GetTablesMetadata(groupId int, groupType string) (map[st
 
 func (s *DatabaseStore) QueryDatabase(groupId int, groupType string, query string) GroupQueryResult {
 	if databaseInstance, ok := s.databases[DatabaseGroup{groupId, groupType}]; ok {
-		data, err := queryToMap(databaseInstance.DB, query)
+		data, err := executeQuery(databaseInstance.DB, query)
 		return GroupQueryResult{GroupId: groupId, Data: data, Error: NewQueryError(err)}
 	} else {
 		return GroupQueryResult{
@@ -164,16 +169,17 @@ func (s *DatabaseStore) QueryMultipleDatabases(groupType string, query string) [
 	for groupId, db := range filteredDatabases {
 		wg.Add(1)
 		go func(groupId int, db *sqlx.DB) {
-			result, err := queryToMap(db, query)
+			defer wg.Done()
+
+			result, err := executeQuery(db, query)
 			var groupQueryResult = GroupQueryResult{
 				groupId,
 				result,
 				NewQueryError(err),
 			}
 			mutex.Lock()
+			defer mutex.Unlock()
 			results = append(results, groupQueryResult)
-			mutex.Unlock()
-			wg.Done()
 		}(groupId, db)
 	}
 	wg.Wait()
@@ -196,12 +202,7 @@ func (s *DatabaseStore) GetDatabaseItems() []DatabaseItem {
 	return arr
 }
 
-type DatabaseInstance struct {
-	Config DatabaseConfig
-	DB     *sqlx.DB
-}
-
-func queryToMap(db *sqlx.DB, query string) (*QueryData, error) {
+func executeQuery(db *sqlx.DB, query string) (*QueryData, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err

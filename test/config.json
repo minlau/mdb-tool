@@ -12,7 +12,7 @@
       "type": "postgresql"
     },
     {
-      "groupId": 1,
+      "groupId": 2,
       "groupType": "test-db",
       "title": "test 2",
       "hostname": "localhost",

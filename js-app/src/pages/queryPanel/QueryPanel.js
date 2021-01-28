@@ -1,5 +1,5 @@
 import React, {Component} from "react";
-import {Button, FormGroup, HTMLSelect, MenuItem, Spinner} from "@blueprintjs/core";
+import {Button, FormGroup, HTMLSelect, MenuItem, Spinner, Switch} from "@blueprintjs/core";
 import {Select} from "@blueprintjs/select";
 import axios from "axios";
 
@@ -16,8 +16,6 @@ import History from "./History";
 import ErrorDialog from "./ErrorDialog";
 import {highlightText} from "../../utils/select";
 import './QueryPanel.css';
-
-const queryModes = [{label: "Multiple", value: "multiple"}, {label: "Single", value: "single"}];
 
 export default class QueryPanel extends Component {
 
@@ -37,7 +35,7 @@ export default class QueryPanel extends Component {
         this.handleExecuteClick = this.handleExecuteClick.bind(this);
         this.handleErrorClick = this.handleErrorClick.bind(this);
 
-        this.handleQueryModeChange = this.handleQueryModeChange.bind(this);
+        this.handleGroupModeChange = this.handleGroupModeChange.bind(this);
         this.handleGroupTypeChange = this.handleGroupTypeChange.bind(this);
 
         this.handleDatabaseSelect = this.handleDatabaseSelect.bind(this);
@@ -46,7 +44,7 @@ export default class QueryPanel extends Component {
         this.handleQuerySelect = this.handleQuerySelect.bind(this);
 
         this.state = {
-            queryMode: queryModes[0].value,
+            groupMode: true,
             groupType: "",
             database: null,
             executingQuery: false,
@@ -79,8 +77,8 @@ export default class QueryPanel extends Component {
         }
     }
 
-    static getSqlType(queryMode, groupType, database, databases) {
-        if (queryMode === queryModes[1].value) {
+    static getSqlType(groupMode, groupType, database, databases) {
+        if (groupMode === false) {
             if (database !== null) {
                 return database.type;
             }
@@ -99,9 +97,9 @@ export default class QueryPanel extends Component {
         }
     }
 
-    static getTablesMetadata(queryMode, groupType, database, databases) {
+    static getTablesMetadata(groupMode, groupType, database, databases) {
         //single database mode
-        if (queryMode === queryModes[1].value) {
+        if (groupMode === false) {
             if (database === null) {
                 return null;
             }
@@ -136,12 +134,12 @@ export default class QueryPanel extends Component {
     }
 
     setState(state, callback) {
-        if (state.queryMode !== undefined
+        if (state.groupMode !== undefined
             || state.groupType !== undefined
             || state.database !== undefined
             || state.databases !== undefined) {
             let oldState = {
-                queryMode: this.state.queryMode,
+                groupMode: this.state.groupMode,
                 groupType: this.state.groupType,
                 database: this.state.database,
                 databases: this.state.databases,
@@ -149,13 +147,13 @@ export default class QueryPanel extends Component {
             }
             let mergedState = {...oldState, ...state}
             state.sqlTypeMode = QueryPanel.getSqlTypeMode(QueryPanel.getSqlType(
-                mergedState.queryMode,
+                mergedState.groupMode,
                 mergedState.groupType,
                 mergedState.database,
                 mergedState.databases
             ));
             state.tablesMetadata = QueryPanel.getTablesMetadata(
-                mergedState.queryMode,
+                mergedState.groupMode,
                 mergedState.groupType,
                 mergedState.database,
                 mergedState.databases
@@ -165,8 +163,8 @@ export default class QueryPanel extends Component {
     }
 
     initTablesMetadata() {
-        const {queryMode, groupType, database, databases} = this.state;
-        if (queryMode === queryModes[1].value) {
+        const {groupMode, groupType, database, databases} = this.state;
+        if (groupMode === false) {
             if (database == null) {
                 return null;
             }
@@ -251,28 +249,16 @@ export default class QueryPanel extends Component {
                             return 0;
                         });
 
-                        let typeMatches = false;
-                        let groupType = this.state.groupType;
                         const groupTypes = new Set();
                         data.forEach(function (item) {
                             groupTypes.add(item.groupType);
-                            if (groupType === item.groupType) {
-                                typeMatches = true;
-                            }
                         });
-
-                        if (!typeMatches) {
-                            if (groupTypes.size > 0) {
-                                groupType = groupTypes.values().next().value;
-                            } else {
-                                groupType = "";
-                            }
-                        }
 
                         this.setState({
                             databases: data,
                             groupTypes: Array.from(groupTypes),
-                            groupType: groupType
+                            groupType: data.length > 0 ? data[0].groupType : "",
+                            database: data.length > 0 ? data[0] : null
                         });
                     }
                 } else {
@@ -289,7 +275,7 @@ export default class QueryPanel extends Component {
         return (
             <MenuItem
                 active={modifiers.active}
-                disabled={modifiers.disabled || this.state.groupType !== item.groupType}
+                disabled={modifiers.disabled}
                 label={item.groupType}
                 onClick={handleClick}
                 key={`${item.groupId}.${item.groupType}`}
@@ -302,14 +288,14 @@ export default class QueryPanel extends Component {
         this.setState({executingQuery: true, errors: []});
 
         let selection = this.codeMirror.editor.getSelection().trim();
-        let singleMode = this.state.queryMode === "single";
+        let singleMode = this.state.groupMode === false;
         let reqParams = {
             groupId: (singleMode ? this.state.database.groupId : null),
             groupType: this.state.groupType,
             query: (selection.length === 0 ? this.state.query : selection)
         };
 
-        this.queryHistory.addQuery(new Date(), this.state.queryMode, this.state.groupType, this.state.database,
+        this.queryHistory.addQuery(new Date(), this.state.groupMode, this.state.groupType, this.state.database,
             reqParams.query);
 
         axios.get('/query', {params: reqParams})
@@ -406,8 +392,8 @@ export default class QueryPanel extends Component {
         this.setState({query: value})
     }
 
-    handleQueryModeChange(e) {
-        this.setState({queryMode: e.target.value});
+    handleGroupModeChange(e) {
+        this.setState({groupMode: !this.state.groupMode});
     }
 
     handleGroupTypeChange(event) {
@@ -432,12 +418,15 @@ export default class QueryPanel extends Component {
     }
 
     handleDatabaseSelect(value) {
-        this.setState({database: value});
+        this.setState({
+            groupType: value.groupType,
+            database: value
+        });
     }
 
     handleQuerySelect(value) {
         this.setState({
-            queryMode: value.queryMode,
+            groupMode: value.groupMode,
             groupType: value.groupType,
             database: value.database,
             query: value.query
@@ -446,12 +435,12 @@ export default class QueryPanel extends Component {
 
     render() {
         const {
-            query, queryMode, groupType, groupTypes, databases, database,
+            query, groupMode, groupType, groupTypes, databases, database,
             executingQuery, errors, data, sqlTypeMode, tablesMetadata
         } = this.state;
         const containsError = errors !== null && errors.length > 0;
         const queryExecutionDisabled = executingQuery
-            || (queryMode === 'single' && database === null)
+            || (groupMode === false && database === null)
             || query.length === 0;
 
         return (
@@ -467,24 +456,23 @@ export default class QueryPanel extends Component {
                     />
 
                     <div className="query-control-elements">
-                        <QueryModeSelect
-                            value={queryMode}
-                            onChange={this.handleQueryModeChange}
+                        <GroupModeSelect
+                            checked={groupMode}
+                            onChange={this.handleGroupModeChange}
                         />
 
-                        <GroupTypeSelect
+                        {groupMode && <GroupTypeSelect
                             value={groupType}
                             onChange={this.handleGroupTypeChange}
                             options={groupTypes}
-                        />
+                        />}
 
-                        <DatabaseSelect
+                        {!groupMode && <DatabaseSelect
                             items={databases}
                             itemRenderer={this.renderDatabase}
                             onItemSelect={this.handleDatabaseSelect}
-                            disabled={queryMode === "multiple"}
                             database={database}
-                        />
+                        />}
 
                         <Button
                             className="query-control-elements-right"
@@ -550,12 +538,9 @@ const QueryEditor = React.memo((props) => {
     />;
 });
 
-const QueryModeSelect = React.memo((props) => {
-    return <FormGroup inline label="Query Mode">
-        <HTMLSelect
-            {...props}
-            options={queryModes}
-        />
+const GroupModeSelect = React.memo((props) => {
+    return <FormGroup inline label="Group mode">
+        <Switch {...props}/>
     </FormGroup>;
 });
 

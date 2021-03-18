@@ -564,7 +564,7 @@ const DatabaseSelect = React.memo((props) => {
             <Button
                 icon="database"
                 text={props.database !== null
-                    ? props.database.groupId + ". " + props.database.title
+                    ? props.database.groupId + ". " + props.database.title + " │" + props.database.groupType
                     : '-'}
                 rightIcon="double-caret-vertical"
                 disabled={props.disabled}

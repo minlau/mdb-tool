@@ -300,88 +300,90 @@ export default class QueryPanel extends Component {
 
         axios.get('/query', {params: reqParams})
             .then(response => {
-                    if (response.status === 200) {
-                        let data = {columns: [], rows: []};
-                        let errors = [];
-
-                        if (singleMode) {
-                            if (response.data.error !== null) {
-                                let err = response.data.error;
-                                err.groupId = reqParams.groupId;
-                                errors.push(err);
-                            }
-                            if (response.data.data !== null
-                                && response.data.data.rows !== null
-                                && response.data.data.columns !== null) {
-                                data = response.data.data;
-                            }
-                        } else {
-                            response.data.forEach((element) => {
-                                if (element.error !== null) {
-                                    let err = element.error;
-                                    err.groupId = element.groupId;
-                                    errors.push(err);
-                                }
-                                if (element.data !== null
-                                    && element.data.columns !== null
-                                    && element.data.rows !== null) {
-                                    element.data.columns.unshift({name: "groupId", fieldName: "groupId"});
-                                    if (data.columns.length === 0) {
-                                        data.columns = element.data.columns;
-                                    } else {
-                                        let missingColumns = element.data.columns.filter(
-                                            newItem => !data.columns.find(
-                                                (oldItem) => oldItem.name === newItem.name
-                                                    && oldItem.fieldName === newItem.fieldName
-                                            )
-                                        );
-                                        if (missingColumns.length === 0
-                                            && element.data.columns.length !== data.columns.length) {
-                                            let newColumns = data.columns.filter(
-                                                newItem => !element.data.columns.find(
-                                                    (oldItem) => oldItem.name === newItem.name
-                                                        && oldItem.fieldName === newItem.fieldName
-                                                )
-                                            );
-                                            if (newColumns.length > 0) {
-                                                let err = {
-                                                    groupId: element.groupId,
-                                                    message: "contains new columns",
-                                                    err: missingColumns
-                                                };
-                                                errors.push(err);
-                                            }
-                                        }
-                                        if (missingColumns.length > 0) {
-                                            let err = {
-                                                groupId: element.groupId,
-                                                message: "contains new columns",
-                                                err: missingColumns
-                                            };
-                                            errors.push(err);
-                                        }
-                                        data.columns = data.columns.concat(missingColumns);
-                                    }
-
-                                    element.data.rows.forEach(row => {
-                                        row.groupId = element.groupId;
-                                    })
-                                    data.rows.push(...element.data.rows);
-                                }
-                            });
-                        }
-                        this.setState({data: data, errors: errors, executingQuery: false});
-                    } else {
+                    if (response.status !== 200) {
                         console.error("failed to execute query", response);
                         this.setState({executingQuery: false});
                         alert("failed to execute query");
+                        return;
                     }
+
+                    let data = {columns: [], rows: []};
+                    let errors = [];
+                    let dbColumns = [];
+
+                    if (singleMode) {
+                        if (response.data.error !== null) {
+                            let err = response.data.error;
+                            err.groupId = reqParams.groupId;
+                            errors.push(err);
+                        }
+                        if (response.data.data !== null
+                            && response.data.data.rows !== null
+                            && response.data.data.columns !== null) {
+                            data = response.data.data;
+                        }
+                    } else {
+                        response.data.forEach((element) => {
+                            if (element.error !== null) {
+                                let err = element.error;
+                                err.groupId = element.groupId;
+                                errors.push(err);
+                            }
+
+                            if (element.data === null
+                                || element.data.columns === null
+                                || element.data.rows === null) {
+                                return;
+                            }
+
+                            dbColumns.push({groupId: element.groupId, columns: element.data.columns});
+
+                            //add groupId column and set rows groupId field value
+                            element.data.columns.unshift({name: "groupId", fieldName: "groupId"});
+                            element.data.rows.forEach(row => {
+                                row.groupId = element.groupId;
+                            });
+
+                            data.rows.push(...element.data.rows);
+                        });
+                    }
+
+                    //collect all unique columns
+                    let allColumns = [];
+                    dbColumns.forEach(e => {
+                        e.columns.forEach(e2 => {
+                            if (allColumns.findIndex(v => v.fieldName === e2.fieldName) === -1) {
+                                allColumns.push(e2);
+                            }
+                        })
+                    });
+                    data.columns = allColumns;
+
+                    //find missing columns and add errors
+                    dbColumns.forEach(e => {
+                        let missingColumns = [];
+                        allColumns.forEach(e2 => {
+                            if (e.columns.findIndex(v => v.fieldName === e2.fieldName) === -1) {
+                                missingColumns.push(e2);
+                            }
+                        })
+                        if (missingColumns.length > 0) {
+                            let err = {
+                                groupId: e.groupId,
+                                message: "missing columns",
+                                err: missingColumns
+                            };
+                            errors.push(err);
+                        }
+                    });
+
+                    this.setState({data: data, errors: errors, executingQuery: false});
                 },
                 error => {
                     console.error("failed to execute query", error);
                     this.setState({executingQuery: false});
                     alert("failed to execute query");
-                })
+                });
     }
 
     handleErrorClick() {

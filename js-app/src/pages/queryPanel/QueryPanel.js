@@ -346,36 +346,36 @@ export default class QueryPanel extends Component {
 
                             data.rows.push(...element.data.rows);
                         });
+
+                        //collect all unique columns
+                        let allColumns = [];
+                        dbColumns.forEach(e => {
+                            e.columns.forEach(e2 => {
+                                if (allColumns.findIndex(v => v.fieldName === e2.fieldName) === -1) {
+                                    allColumns.push(e2);
+                                }
+                            })
+                        });
+                        data.columns = allColumns;
+
+                        //find missing columns and add errors
+                        dbColumns.forEach(e => {
+                            let missingColumns = [];
+                            allColumns.forEach(e2 => {
+                                if (e.columns.findIndex(v => v.fieldName === e2.fieldName) === -1) {
+                                    missingColumns.push(e2);
+                                }
+                            })
+                            if (missingColumns.length > 0) {
+                                let err = {
+                                    groupId: e.groupId,
+                                    message: "missing columns",
+                                    err: missingColumns
+                                };
+                                errors.push(err);
+                            }
+                        });
                     }
-
-                    //collect all unique columns
-                    let allColumns = [];
-                    dbColumns.forEach(e => {
-                        e.columns.forEach(e2 => {
-                            if (allColumns.findIndex(v => v.fieldName === e2.fieldName) === -1) {
-                                allColumns.push(e2);
-                            }
-                        })
-                    });
-                    data.columns = allColumns;
-
-                    //find missing columns and add errors
-                    dbColumns.forEach(e => {
-                        let missingColumns = [];
-                        allColumns.forEach(e2 => {
-                            if (e.columns.findIndex(v => v.fieldName === e2.fieldName) === -1) {
-                                missingColumns.push(e2);
-                            }
-                        })
-                        if (missingColumns.length > 0) {
-                            let err = {
-                                groupId: e.groupId,
-                                message: "missing columns",
-                                err: missingColumns
-                            };
-                            errors.push(err);
-                        }
-                    });
 
                     this.setState({data: data, errors: errors, executingQuery: false});
                 },

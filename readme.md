@@ -10,11 +10,7 @@
  
 ### TODO
 - Better naming for group(id, type). It is confusing
-- Setting in web UI to split data by group id into separate tables
 - Support for non sql databases?
- 
-### Known issues
-- Duplicate query result column names are renamed
  
 ## Getting Started
 

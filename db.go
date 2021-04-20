@@ -8,9 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/nakagami/firebirdsql"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"sync"
-	"time"
 )
 
 type DataSource struct {
@@ -21,6 +19,7 @@ type DataSource struct {
 type DatabaseConfig struct {
 	DatabaseDescription
 	DatabaseConnConfig
+	DatabaseConnPoolConfig
 }
 
 type DatabaseDescription struct {
@@ -29,8 +28,8 @@ type DatabaseDescription struct {
 }
 
 type DatabaseGroup struct {
-	GroupId   int    `json:"groupId"`
-	GroupType string `json:"groupType"`
+	GroupId   int    `db:"groupId" json:"groupId"`
+	GroupType string `db:"groupType" json:"groupType"`
 }
 
 type DatabaseConnConfig struct {
@@ -40,6 +39,13 @@ type DatabaseConnConfig struct {
 	Username string `db:"username"`
 	Password string `db:"password"`
 	Type     string `db:"type"`
+}
+
+type DatabaseConnPoolConfig struct {
+	MaxOpenConns             int `db:"maxOpenConns"`
+	MaxIdleConns             int `db:"maxIdleConns"`
+	ConnMaxLifetimeInSeconds int `db:"connMaxLifetimeInSeconds"`
+	ConnMaxIdleTimeInSeconds int `db:"connMaxIdleTimeInSeconds"`
 }
 
 func getConnectionUrl(c DatabaseConnConfig) (string, error) {
@@ -103,13 +109,12 @@ func OpenDatabase(c DatabaseConnConfig) (*sqlx.DB, error) {
 			return nil, errors.Wrapf(err, "failed to connect to database. config=%#v", c)
 		}
 	}
-	db.SetMaxIdleConns(1)
-	db.SetConnMaxLifetime(5 * time.Minute)
 	return db, nil
 }
 
-func GetDatabaseConfigsFromDataSources(dataSources []DataSource) []DatabaseConfig {
-	var databaseConfigs []DatabaseConfig
+func GetDatabaseConfigsFromDataSources(dataSources []DataSource) ([]DatabaseConfig, []error) {
+	databaseConfigs := make([]DatabaseConfig, 0)
+	errs := make([]error, 0)
 	var mutex sync.Mutex
 	var wg sync.WaitGroup
 
@@ -120,7 +125,9 @@ func GetDatabaseConfigsFromDataSources(dataSources []DataSource) []DatabaseConfi
 
 			configs, err := GetDatabaseConfigsFromDataSource(dataSource)
 			if err != nil {
-				log.Warn().Err(err).Msg("failed to get database configs from db")
+				mutex.Lock()
+				defer mutex.Unlock()
+				errs = append(errs, err)
 				return
 			}
 
@@ -130,21 +137,22 @@ func GetDatabaseConfigsFromDataSources(dataSources []DataSource) []DatabaseConfi
 		}(item)
 	}
 	wg.Wait()
-	return databaseConfigs
+	return databaseConfigs, errs
 }
 
 func GetDatabaseConfigsFromDataSource(dataSource DataSource) ([]DatabaseConfig, error) {
 	db, err := OpenDatabase(dataSource.DatabaseConnConfig)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to open database")
+		return nil, errors.Wrapf(err, "failed to open database. databaseConnConfig=%#v",
+			dataSource.DatabaseConnConfig)
 	}
 	defer db.Close()
 
 	var databaseConfigs []DatabaseConfig
 	err = db.Select(&databaseConfigs, dataSource.Query)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to select database configs. config=%#v",
-			dataSource.DatabaseConnConfig)
+		return nil, errors.Wrapf(err, "failed to select database configs. dataSource=%#v",
+			dataSource)
 	}
 	return databaseConfigs, nil
 }

@@ -1,0 +1,105 @@
+{
+  "dataSources": [
+    {
+      "query": "select 10 \"groupId\", 'pg' as \"groupType\", 'test' as title, 'localhost' as hostname, 5432 as port, 'db1' as name, 'postgres' as username, 'admin' as password, 'postgresql' as type, 4 as \"maxOpenConns\", 1 as \"maxIdleConns\", 600 as \"connMaxLifetimeInSeconds\", 60 as \"connMaxIdleTimeInSeconds\";",
+      "hostname": "localhost",
+      "port": 5432,
+      "name": "postgres",
+      "username": "postgres",
+      "password": "admin",
+      "type": "postgresql"
+    }
+  ],
+  "databaseConfigs": [
+    {
+      "groupId": 1,
+      "groupType": "main-db",
+      "title": "First",
+      "hostname": "localhost",
+      "port": 5432,
+      "name": "db1",
+      "username": "postgres",
+      "password": "admin",
+      "type": "postgresql",
+      "maxOpenConns": 4,
+      "maxIdleConns": 1,
+      "connMaxLifetimeInSeconds": 300,
+      "connMaxIdleTimeInSeconds": 60
+    },
+    {
+      "groupId": 1,
+      "groupType": "other-db",
+      "title": "First(other)",
+      "hostname": "localhost",
+      "port": 5432,
+      "name": "db1",
+      "username": "postgres",
+      "password": "admin",
+      "type": "postgresql",
+      "maxOpenConns": 4,
+      "maxIdleConns": 1,
+      "connMaxLifetimeInSeconds": 300,
+      "connMaxIdleTimeInSeconds": 60
+    },
+    {
+      "groupId": 2,
+      "groupType": "main-db",
+      "title": "Second",
+      "hostname": "localhost",
+      "port": 5432,
+      "name": "db2",
+      "username": "postgres",
+      "password": "admin",
+      "type": "postgresql",
+      "maxOpenConns": 4,
+      "maxIdleConns": 1,
+      "connMaxLifetimeInSeconds": 300,
+      "connMaxIdleTimeInSeconds": 60
+    },
+    {
+      "groupId": 3,
+      "groupType": "main-db",
+      "title": "Third",
+      "hostname": "localhost",
+      "port": 5432,
+      "name": "db3",
+      "username": "postgres",
+      "password": "admin",
+      "type": "postgresql",
+      "maxOpenConns": 4,
+      "maxIdleConns": 1,
+      "connMaxLifetimeInSeconds": 300,
+      "connMaxIdleTimeInSeconds": 60
+    },
+    {
+      "groupId": 4,
+      "groupType": "main-db",
+      "title": "Fourth",
+      "hostname": "localhost",
+      "port": 5432,
+      "name": "db4",
+      "username": "postgres",
+      "password": "admin",
+      "type": "postgresql",
+      "maxOpenConns": 4,
+      "maxIdleConns": 1,
+      "connMaxLifetimeInSeconds": 300,
+      "connMaxIdleTimeInSeconds": 60
+    },
+    {
+      "groupId": 5,
+      "groupType": "mysql-db",
+      "title": "Fifth",
+      "hostname": "localhost",
+      "port": 3306,
+      "name": "main",
+      "username": "root",
+      "password": "root",
+      "type": "mysql",
+      "maxOpenConns": 4,
+      "maxIdleConns": 1,
+      "connMaxLifetimeInSeconds": 300,
+      "connMaxIdleTimeInSeconds": 60
+    }
+  ]
+}

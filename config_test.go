@@ -17,13 +17,73 @@ func Test_readConfig(t *testing.T) {
 	}{
 		{
 			"valid file",
-			args{path: "test/config.json"},
-			&Config{DataSources: []DataSource{{Query: "select 1", DatabaseConnConfig: DatabaseConnConfig{Hostname: "localhost", Port: 5432, Name: "test-non-existing-1", Username: "postgres", Password: "admin", Type: "postgresql"}}}, DatabaseConfigs: []DatabaseConfig{{DatabaseDescription: DatabaseDescription{Title: "test 1", DatabaseGroup: DatabaseGroup{GroupId: 1, GroupType: "test-db"}}, DatabaseConnConfig: DatabaseConnConfig{Hostname: "localhost", Port: 5432, Name: "test-non-existing-1", Username: "postgres", Password: "admin", Type: "postgresql"}}, {DatabaseDescription: DatabaseDescription{Title: "test 2", DatabaseGroup: DatabaseGroup{GroupId: 2, GroupType: "test-db"}}, DatabaseConnConfig: DatabaseConnConfig{Hostname: "localhost", Port: 5432, Name: "test-non-existing-2", Username: "postgres", Password: "admin", Type: "postgresql"}}}},
+			args{path: "testdata/test_read_config.json"},
+			&Config{
+				DataSources: []DataSource{{
+					Query: "select 1",
+					DatabaseConnConfig: DatabaseConnConfig{
+						Hostname: "localhost",
+						Port:     5432,
+						Name:     "test-non-existing-1",
+						Username: "postgres",
+						Password: "admin",
+						Type:     "postgresql",
+					},
+				}},
+				DatabaseConfigs: []DatabaseConfig{
+					{
+						DatabaseDescription: DatabaseDescription{
+							Title: "test 1",
+							DatabaseGroup: DatabaseGroup{
+								GroupId:   1,
+								GroupType: "test-db",
+							},
+						},
+						DatabaseConnConfig: DatabaseConnConfig{
+							Hostname: "localhost",
+							Port:     5432,
+							Name:     "test-non-existing-1",
+							Username: "postgres",
+							Password: "admin",
+							Type:     "postgresql",
+						},
+						DatabaseConnPoolConfig: DatabaseConnPoolConfig{
+							MaxOpenConns:             2,
+							MaxIdleConns:             1,
+							ConnMaxLifetimeInSeconds: 600,
+							ConnMaxIdleTimeInSeconds: 60,
+						},
+					},
+					{
+						DatabaseDescription: DatabaseDescription{
+							Title: "test 2",
+							DatabaseGroup: DatabaseGroup{
+								GroupId:   2,
+								GroupType: "test-db",
+							},
+						},
+						DatabaseConnConfig: DatabaseConnConfig{
+							Hostname: "localhost",
+							Port:     5432,
+							Name:     "test-non-existing-2",
+							Username: "postgres",
+							Password: "admin",
+							Type:     "postgresql",
+						},
+						DatabaseConnPoolConfig: DatabaseConnPoolConfig{
+							MaxOpenConns:             4,
+							MaxIdleConns:             2,
+							ConnMaxLifetimeInSeconds: 300,
+							ConnMaxIdleTimeInSeconds: 30,
+						},
+					},
+				},
+			},
 			false,
 		},
 		{
 			"non existing file",
-			args{path: "test/config_non_existing.json"},
+			args{path: "testdata/config_non_existing.json"},
 			nil,
 			true,
 		},

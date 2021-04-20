@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type DatabaseInstance struct {
@@ -39,25 +40,23 @@ func (s *DatabaseStore) AddDatabases(databases []DatabaseConfig) {
 }
 
 func (s *DatabaseStore) AddDatabase(config DatabaseConfig) error {
+	db, err := OpenDatabase(config.DatabaseConnConfig)
+	if err != nil {
+		return errors.Wrap(err, "failed to open database")
+	}
+	db.SetMaxOpenConns(config.MaxOpenConns)
+	db.SetMaxIdleConns(config.MaxIdleConns)
+	db.SetConnMaxLifetime(time.Duration(config.ConnMaxLifetimeInSeconds) * time.Second)
+	db.SetConnMaxIdleTime(time.Duration(config.ConnMaxIdleTimeInSeconds) * time.Second)
+
 	s.m.Lock()
+	defer s.m.Unlock()
 	if _, ok := s.databases[config.DatabaseGroup]; ok {
-		s.m.Unlock()
+		db.Close()
 		return errors.Errorf("database is already added with groupId=%v, groupType=%v", config.GroupId,
 			config.GroupType)
 	}
-	s.databases[config.DatabaseGroup] = DatabaseInstance{}
-	s.m.Unlock()
-
-	db, err := OpenDatabase(config.DatabaseConnConfig)
-	if err != nil {
-		s.m.Lock()
-		delete(s.databases, config.DatabaseGroup)
-		s.m.Unlock()
-		return errors.Wrap(err, "failed to open database")
-	}
-	s.m.Lock()
 	s.databases[config.DatabaseGroup] = DatabaseInstance{config, db}
-	s.m.Unlock()
 	return nil
 }
 
@@ -171,10 +170,10 @@ func (s *DatabaseStore) QueryMultipleDatabases(groupType string, query string) [
 		go func(groupId int, db *sqlx.DB) {
 			defer wg.Done()
 
-			result, err := executeQuery(db, query)
+			data, err := executeQuery(db, query)
 			var groupQueryResult = GroupQueryResult{
 				groupId,
-				result,
+				data,
 				NewQueryError(err),
 			}
 			mutex.Lock()

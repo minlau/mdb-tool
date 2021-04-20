@@ -28,7 +28,10 @@ func main() {
 
 	databaseStore := NewDatabaseStore()
 	databaseStore.AddDatabases(config.DatabaseConfigs)
-	databaseConfigs := GetDatabaseConfigsFromDataSources(config.DataSources)
+	databaseConfigs, errs := GetDatabaseConfigsFromDataSources(config.DataSources)
+	for _, errItem := range errs {
+		log.Warn().Err(errItem).Msg("failed to get database configs from db")
+	}
 	databaseStore.AddDatabases(databaseConfigs)
 
 	log.Info().Msg("finished databases initialization")

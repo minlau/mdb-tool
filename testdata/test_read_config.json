@@ -1,0 +1,45 @@
+{
+  "databaseConfigs": [
+    {
+      "groupId": 1,
+      "groupType": "test-db",
+      "title": "test 1",
+      "hostname": "localhost",
+      "port": 5432,
+      "name": "test-non-existing-1",
+      "username": "postgres",
+      "password": "admin",
+      "type": "postgresql",
+      "maxOpenConns": 2,
+      "maxIdleConns": 1,
+      "connMaxLifetimeInSeconds": 600,
+      "connMaxIdleTimeInSeconds": 60
+    },
+    {
+      "groupId": 2,
+      "groupType": "test-db",
+      "title": "test 2",
+      "hostname": "localhost",
+      "port": 5432,
+      "name": "test-non-existing-2",
+      "username": "postgres",
+      "password": "admin",
+      "type": "postgresql",
+      "maxOpenConns": 4,
+      "maxIdleConns": 2,
+      "connMaxLifetimeInSeconds": 300,
+      "connMaxIdleTimeInSeconds": 30
+    }
+  ],
+  "dataSources": [
+    {
+      "query": "select 1",
+      "hostname": "localhost",
+      "port": 5432,
+      "name": "test-non-existing-1",
+      "username": "postgres",
+      "password": "admin",
+      "type": "postgresql"
+    }
+  ]
+}

@@ -26,25 +26,43 @@ const benchGenerateData = `
 INSERT INTO messages(id, text, is_read, sender_id, receiver_id, create_date) 
 SELECT gen, 'gen'||gen, false, 0, 0, now() from generate_series(1,100000) gen
 `
+const benchClearSchema = `
+drop TABLE messages;
+`
 const benchQuery = `select * from messages limit 100000`
-const benchGroupType = "main-db"
+const benchGroupType = "test"
 
 func initDatabaseStore() *DatabaseStore {
-	config, err := readConfig("config.json")
+	config, err := readConfig("testdata/bench_config.json")
 	if err != nil {
-		fmt.Errorf("failed to read config. %e", err)
+		panic(fmt.Sprintf("failed to read config. %v", err))
 		return nil
 	}
 
 	databaseStore := NewDatabaseStore()
 	databaseStore.AddDatabases(config.DatabaseConfigs)
-	databaseConfigs := GetDatabaseConfigsFromDataSources(config.DataSources)
+	databaseConfigs, errs := GetDatabaseConfigsFromDataSources(config.DataSources)
+	if len(errs) > 0 {
+		panic(fmt.Sprintf("GetDatabaseConfigsFromDataSources contains errors. Errors: %v", err))
+	}
 	databaseStore.AddDatabases(databaseConfigs)
 	return databaseStore
 }
 
+func initData(dataStore *DatabaseStore, groupType string) {
+	dataStore.QueryMultipleDatabases(groupType, benchPrepareSchema)
+	dataStore.QueryMultipleDatabases(groupType, benchGenerateData)
+}
+
+func clearData(dataStore *DatabaseStore, groupType string) {
+	dataStore.QueryMultipleDatabases(groupType, benchClearSchema)
+}
+
 func BenchmarkEncodeJson(b *testing.B) {
 	databaseStore := initDatabaseStore()
+	initData(databaseStore, benchGroupType)
+	defer clearData(databaseStore, benchGroupType)
+
 	data := databaseStore.QueryMultipleDatabases(benchGroupType, benchQuery)
 	b.ResetTimer()
 	b.Run("segmentio/encoding/json", func(b *testing.B) {
@@ -75,6 +93,9 @@ func BenchmarkEncodeJson(b *testing.B) {
 
 func BenchmarkQuery(b *testing.B) {
 	databaseStore := initDatabaseStore()
+	initData(databaseStore, benchGroupType)
+	defer clearData(databaseStore, benchGroupType)
+
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		result := databaseStore.QueryMultipleDatabases(benchGroupType, benchQuery)
@@ -100,6 +121,9 @@ func BenchmarkRequest(b *testing.B) {
 	}
 
 	databaseStore := initDatabaseStore()
+	initData(databaseStore, benchGroupType)
+	defer clearData(databaseStore, benchGroupType)
+
 	handler := query(databaseStore)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {

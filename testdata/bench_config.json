@@ -1,0 +1,19 @@
+{
+  "databaseConfigs": [
+    {
+      "groupId": 1,
+      "groupType": "test",
+      "title": "test",
+      "hostname": "localhost",
+      "port": 5432,
+      "name": "test",
+      "username": "postgres",
+      "password": "admin",
+      "type": "postgresql",
+      "maxOpenConns": 4,
+      "maxIdleConns": 1,
+      "connMaxLifetimeInSeconds": 300,
+      "connMaxIdleTimeInSeconds": 60
+    }
+  ]
+}

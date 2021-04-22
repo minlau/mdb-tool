@@ -71,7 +71,7 @@ WHERE
 `
 var selectFbTablesMetadata = `
 SELECT
-    f.rdb$relation_name AS table_name, f.rdb$field_name AS column_name
+    trim(f.rdb$relation_name) AS table_name, trim(f.rdb$field_name) AS column_name
 FROM
     rdb$relation_fields AS f
     JOIN rdb$relations AS r ON

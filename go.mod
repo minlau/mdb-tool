@@ -17,11 +17,11 @@ require (
 	github.com/segmentio/encoding v0.2.17
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/stretchr/testify v1.5.1
-	golang.org/x/crypto v0.0.0-20210415154028-4f45737414dc // indirect
+	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b // indirect
 	golang.org/x/text v0.3.6 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 	modernc.org/mathutil v1.2.2 // indirect
 )
 
-go 1.14
+go 1.16

@@ -46,11 +46,11 @@ module.exports = merge([{
         ]
     },
     output: {
-        path: path.resolve(__dirname, "../../assets/"),
-        publicPath : "assets/",
+        path: path.resolve(__dirname, "../../static/assets/"),
+        publicPath: "assets/",
     },
     plugins: [
-        new HtmlWebpackPlugin({template: './src/index.html'}),
+        new HtmlWebpackPlugin({template: './src/index.html', filename: '../index.html'}),
         new MiniCssExtractPlugin({
             filename: "main.min.css",
             chunkFilename: "main.chunk.css"

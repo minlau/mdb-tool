@@ -2,7 +2,7 @@
 /js-app/node_modules
 
 # js build
-/assets
+/static
 
 # IDE folders
 .idea

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -60,7 +61,7 @@ func (s *DatabaseStore) AddDatabase(config DatabaseConfig) error {
 	return nil
 }
 
-var selectPgTablesMetadata = `
+const selectPgTablesMetadata = `
 SELECT
     t.table_name, c.column_name
 FROM
@@ -69,7 +70,7 @@ FROM
 WHERE
     t.table_schema = current_schema() AND t.table_type = 'BASE TABLE';
 `
-var selectFbTablesMetadata = `
+const selectFbTablesMetadata = `
 SELECT
     trim(f.rdb$relation_name) AS table_name, trim(f.rdb$field_name) AS column_name
 FROM
@@ -81,7 +82,7 @@ FROM
 ORDER BY
     1, f.rdb$field_position;
 `
-var selectMySqlTablesMetadata = `
+const selectMySqlTablesMetadata = `
 SELECT
     table_name, column_name
 FROM
@@ -139,9 +140,9 @@ func (s *DatabaseStore) GetTablesMetadata(groupId int, groupType string) (map[st
 	}
 }
 
-func (s *DatabaseStore) QueryDatabase(groupId int, groupType string, query string) GroupQueryResult {
+func (s *DatabaseStore) QueryDatabase(ctx context.Context, groupId int, groupType string, query string) GroupQueryResult {
 	if databaseInstance, ok := s.databases[DatabaseGroup{groupId, groupType}]; ok {
-		data, err := executeQuery(databaseInstance.DB, query)
+		data, err := executeQuery(ctx, databaseInstance.DB, query)
 		return GroupQueryResult{GroupId: groupId, Data: data, Error: NewQueryError(err)}
 	} else {
 		return GroupQueryResult{
@@ -153,7 +154,7 @@ func (s *DatabaseStore) QueryDatabase(groupId int, groupType string, query strin
 }
 
 //does not have timeout, might be a problem
-func (s *DatabaseStore) QueryMultipleDatabases(groupType string, query string) []GroupQueryResult {
+func (s *DatabaseStore) QueryMultipleDatabases(ctx context.Context, groupType string, query string) []GroupQueryResult {
 	var results []GroupQueryResult
 	var mutex = &sync.Mutex{}
 	var filteredDatabases = make(map[int]*sqlx.DB)
@@ -170,7 +171,7 @@ func (s *DatabaseStore) QueryMultipleDatabases(groupType string, query string) [
 		go func(groupId int, db *sqlx.DB) {
 			defer wg.Done()
 
-			data, err := executeQuery(db, query)
+			data, err := executeQuery(ctx, db, query)
 			var groupQueryResult = GroupQueryResult{
 				groupId,
 				data,
@@ -201,8 +202,8 @@ func (s *DatabaseStore) GetDatabaseItems() []DatabaseItem {
 	return arr
 }
 
-func executeQuery(db *sqlx.DB, query string) (*QueryData, error) {
-	tx, err := db.Begin()
+func executeQuery(ctx context.Context, db *sqlx.DB, query string) (*QueryData, error) {
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +217,7 @@ func executeQuery(db *sqlx.DB, query string) (*QueryData, error) {
 		}
 	}()
 
-	rows, err := tx.Query(query)
+	rows, err := tx.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	stdjson "encoding/json"
 	"fmt"
 	iterJson "github.com/json-iterator/go"
@@ -50,12 +51,12 @@ func initDatabaseStore() *DatabaseStore {
 }
 
 func initData(dataStore *DatabaseStore, groupType string) {
-	dataStore.QueryMultipleDatabases(groupType, benchPrepareSchema)
-	dataStore.QueryMultipleDatabases(groupType, benchGenerateData)
+	dataStore.QueryMultipleDatabases(context.Background(), groupType, benchPrepareSchema)
+	dataStore.QueryMultipleDatabases(context.Background(), groupType, benchGenerateData)
 }
 
 func clearData(dataStore *DatabaseStore, groupType string) {
-	dataStore.QueryMultipleDatabases(groupType, benchClearSchema)
+	dataStore.QueryMultipleDatabases(context.Background(), groupType, benchClearSchema)
 }
 
 func BenchmarkEncodeJson(b *testing.B) {
@@ -63,7 +64,7 @@ func BenchmarkEncodeJson(b *testing.B) {
 	initData(databaseStore, benchGroupType)
 	defer clearData(databaseStore, benchGroupType)
 
-	data := databaseStore.QueryMultipleDatabases(benchGroupType, benchQuery)
+	data := databaseStore.QueryMultipleDatabases(context.Background(), benchGroupType, benchQuery)
 	b.ResetTimer()
 	b.Run("segmentio/encoding/json", func(b *testing.B) {
 		b.ResetTimer()
@@ -98,7 +99,7 @@ func BenchmarkQuery(b *testing.B) {
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		result := databaseStore.QueryMultipleDatabases(benchGroupType, benchQuery)
+		result := databaseStore.QueryMultipleDatabases(context.Background(), benchGroupType, benchQuery)
 		if len(result) > -1 {
 			continue
 		}

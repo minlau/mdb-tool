@@ -33,6 +33,7 @@ export default class QueryPanel extends Component {
 
         this.handleQueryTextChange = this.handleQueryTextChange.bind(this);
         this.handleExecuteClick = this.handleExecuteClick.bind(this);
+        this.handleExecuteCancelClick = this.handleExecuteCancelClick.bind(this);
         this.handleErrorClick = this.handleErrorClick.bind(this);
 
         this.handleGroupModeChange = this.handleGroupModeChange.bind(this);
@@ -284,8 +285,15 @@ export default class QueryPanel extends Component {
         );
     }
 
+    handleExecuteCancelClick() {
+        if (this.state.executingQuery) {
+            this.state.requestCancel.cancel();
+        }
+    }
+
     handleExecuteClick() {
-        this.setState({executingQuery: true, errors: []});
+        const cancelTokenSource = axios.CancelToken.source();
+        this.setState({executingQuery: true, requestCancel: cancelTokenSource, errors: []});
 
         let selection = this.codeMirror.editor.getSelection().trim();
         let singleMode = this.state.groupMode === false;
@@ -298,11 +306,11 @@ export default class QueryPanel extends Component {
         this.queryHistory.addQuery(new Date(), this.state.groupMode, this.state.groupType, this.state.database,
             reqParams.query);
 
-        axios.get('/query', {params: reqParams})
+        axios.get('/query', {params: reqParams, cancelToken: cancelTokenSource.token})
             .then(response => {
                     if (response.status !== 200) {
                         console.error("failed to execute query", response);
-                        this.setState({executingQuery: false});
+                        this.setState({executingQuery: false, requestCancel: null});
                         alert("failed to execute query");
                         return;
                     }
@@ -377,12 +385,20 @@ export default class QueryPanel extends Component {
                         });
                     }
 
-                    this.setState({data: data, errors: errors, executingQuery: false});
+                    this.setState({data: data, errors: errors, executingQuery: false, requestCancel: null});
                 },
                 error => {
+                    this.setState({
+                        data: {columns: [], rows: []},
+                        errors: [{groupId: "Request", err: "Request has been canceled"}],
+                        executingQuery: false,
+                        requestCancel: null
+                    });
+                    if (error instanceof axios.Cancel) {
+                        return;
+                    }
                     console.error("failed to execute query", error);
-                    this.setState({executingQuery: false});
-                    alert("failed to execute query");
+                    alert("failed to execute query. " + error);
                 });
     }
 
@@ -476,13 +492,20 @@ export default class QueryPanel extends Component {
                             database={database}
                         />}
 
-                        <Button
+                        {!executingQuery && <Button
                             className="query-control-elements-right"
                             disabled={queryExecutionDisabled}
                             onClick={this.handleExecuteClick}
                             icon="play"
                             text="Execute"
-                        />
+                        />}
+
+                        {executingQuery && <Button
+                            className="query-control-elements-right"
+                            onClick={this.handleExecuteCancelClick}
+                            icon="stop"
+                            text="Cancel"
+                        />}
 
                         <History
                             className="query-control-elements-right"

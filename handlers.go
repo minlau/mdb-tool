@@ -69,10 +69,10 @@ func query(store *DatabaseStore) http.HandlerFunc {
 
 		if req.GroupId == nil {
 			render.Status(r, http.StatusOK)
-			render.JSON(w, r, store.QueryMultipleDatabases(req.GroupType, req.Query))
+			render.JSON(w, r, store.QueryMultipleDatabases(r.Context(), req.GroupType, req.Query))
 		} else {
 			render.Status(r, http.StatusOK)
-			render.JSON(w, r, store.QueryDatabase(*req.GroupId, req.GroupType, req.Query))
+			render.JSON(w, r, store.QueryDatabase(r.Context(), *req.GroupId, req.GroupType, req.Query))
 		}
 	}
 }

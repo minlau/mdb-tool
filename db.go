@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/stdlib"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/nakagami/firebirdsql"
 	"github.com/pkg/errors"
@@ -95,7 +95,7 @@ func OpenDatabase(c DatabaseConnConfig) (*sqlx.DB, error) {
 			return nil, errors.Wrapf(err, "failed to parse pgx config. config=%#v", c)
 		}
 		//disable implicit prepared statement to enable execution of multiple queries at once
-		connConfig.PreferSimpleProtocol = true
+		connConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 
 		openDB := stdlib.OpenDB(*connConfig)
 		db = sqlx.NewDb(openDB, driverName)

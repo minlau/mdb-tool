@@ -4,6 +4,7 @@ import (
 	"context"
 	stdjson "encoding/json"
 	"fmt"
+	goJson "github.com/goccy/go-json"
 	iterJson "github.com/json-iterator/go"
 	"github.com/segmentio/encoding/json"
 	"net/http"
@@ -37,7 +38,6 @@ func initDatabaseStore() *DatabaseStore {
 	config, err := readConfig("testdata/bench_config.json")
 	if err != nil {
 		panic(fmt.Sprintf("failed to read config. %v", err))
-		return nil
 	}
 
 	databaseStore := NewDatabaseStore()
@@ -69,7 +69,7 @@ func BenchmarkEncodeJson(b *testing.B) {
 	b.Run("segmentio/encoding/json", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			if json, err := json.Marshal(data); err != nil || len(json) == 0 {
+			if marshaledJson, err := json.Marshal(data); err != nil || len(marshaledJson) == 0 {
 				panic("marshal error: " + err.Error())
 			}
 		}
@@ -77,7 +77,15 @@ func BenchmarkEncodeJson(b *testing.B) {
 	b.Run("json-iterator/go", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			if json, err := iterJson.Marshal(data); err != nil || len(json) == 0 {
+			if marshaledJson, err := iterJson.Marshal(data); err != nil || len(marshaledJson) == 0 {
+				panic("marshal error: " + err.Error())
+			}
+		}
+	})
+	b.Run("ccy/go-json", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			if marshaledJson, err := goJson.Marshal(data); err != nil || len(marshaledJson) == 0 {
 				panic("marshal error: " + err.Error())
 			}
 		}
@@ -85,7 +93,7 @@ func BenchmarkEncodeJson(b *testing.B) {
 	b.Run("encoding/json", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			if json, err := stdjson.Marshal(data); err != nil || len(json) == 0 {
+			if marshaledJson, err := stdjson.Marshal(data); err != nil || len(marshaledJson) == 0 {
 				panic("marshal error: " + err.Error())
 			}
 		}

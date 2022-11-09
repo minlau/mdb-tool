@@ -1,10 +1,10 @@
 import React, {PureComponent} from "react";
 import {Button, MenuItem} from "@blueprintjs/core";
-import {Select} from "@blueprintjs/select";
+import {Select2} from "@blueprintjs/select";
 import {highlightText} from "../../utils/select";
 
 const getQueryLabel = (item) => {
-    return `${item.queryMode} ${item.groupType} ${item.database != null
+    return `${item.groupMode} ${item.groupType} ${item.database != null
         ? `${item.database.groupId}. ${item.database.title}`
         : ''}`;
 };
@@ -14,7 +14,7 @@ export default class History extends PureComponent {
     constructor(props) {
         super(props);
         this.state = {
-            queries: [] // {"timestamp", "queryMode", "groupType", "database", "query"}
+            queries: [] // {"timestamp", "groupMode", "groupType", "database", "query"}
         };
 
         this.addQuery = this.addQuery.bind(this);
@@ -40,22 +40,22 @@ export default class History extends PureComponent {
         );
     }
 
-    addQuery(timestamp, queryMode, groupType, database, query) {
+    addQuery(timestamp, groupMode, groupType, database, query) {
         let queries = this.state.queries.slice();
         if (queries.length > 0) {
             let lastElement = queries[queries.length - 1];
-            if (lastElement.queryMode === queryMode && lastElement.groupType === groupType &&
+            if (lastElement.groupMode === groupMode && lastElement.groupType === groupType &&
                 lastElement.database === database && lastElement.query === query) {
                 return;
             }
         }
-        queries.push({timestamp, queryMode, groupType, database, query});
+        queries.push({timestamp, groupMode, groupType, database, query});
         this.setState({queries: queries});
     }
 
     render() {
         return (
-            <Select
+            <Select2
                 className={this.props.className}
                 items={this.state.queries}
                 itemPredicate={this.selectItemPredicate}
@@ -69,7 +69,7 @@ export default class History extends PureComponent {
                     icon="history"
                     text={`${this.state.queries.length} items`}
                 />
-            </Select>
+            </Select2>
         );
     }
 

@@ -1,6 +1,6 @@
 import React, {Component} from "react";
 import {Button, FormGroup, HTMLSelect, MenuItem, Spinner, Switch} from "@blueprintjs/core";
-import {Select} from "@blueprintjs/select";
+import {Select2} from "@blueprintjs/select";
 import axios from "axios";
 
 import {Controlled as CodeMirror} from 'react-codemirror2'
@@ -580,7 +580,7 @@ const GroupTypeSelect = React.memo((props) => {
 
 const DatabaseSelect = React.memo((props) => {
     return <FormGroup inline label="Database">
-        <Select
+        <Select2
             {...props}
             itemPredicate={QueryPanel.selectItemPredicate}
             noResults={<MenuItem disabled text="No results."/>}
@@ -594,6 +594,6 @@ const DatabaseSelect = React.memo((props) => {
                 rightIcon="double-caret-vertical"
                 disabled={props.disabled}
             />
-        </Select>
+        </Select2>
     </FormGroup>;
 });

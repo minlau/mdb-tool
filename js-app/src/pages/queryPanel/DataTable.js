@@ -7,7 +7,7 @@ export default class DataTable extends PureComponent {
 
     autoSizeColumns(params) {
         let columnIds = [];
-        params.columnApi.getAllColumns().forEach(function (column) {
+        params.columnApi.getColumns().forEach(function (column) {
             columnIds.push(column.colId);
         });
         params.columnApi.autoSizeColumns(columnIds);

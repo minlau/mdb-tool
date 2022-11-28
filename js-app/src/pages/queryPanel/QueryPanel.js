@@ -1,5 +1,5 @@
 import React, {Component} from "react";
-import {Button, FormGroup, HTMLSelect, MenuItem, Spinner, Switch} from "@blueprintjs/core";
+import {Button, FormGroup, HTMLSelect, MenuItem, Spinner, SpinnerSize, Switch} from "@blueprintjs/core";
 import {Select2} from "@blueprintjs/select";
 import axios from "axios";
 
@@ -515,7 +515,7 @@ export default class QueryPanel extends Component {
 
                         {executingQuery && <Spinner
                             className={['query-control-elements-right', 'query-executing-spinner']}
-                            size={Spinner.SIZE_SMALL}
+                            size={SpinnerSize.SMALL}
                         />}
                         {containsError && <Button
                             className="query-control-elements-right"

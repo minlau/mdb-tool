@@ -1,4 +1,4 @@
-// +build !dev
+//go:build !dev
 
 package main
 
@@ -8,7 +8,8 @@ import (
 	"net/http"
 )
 
-//https://blog.carlmjohnson.net/post/2021/how-to-use-go-embed/
+// https://blog.carlmjohnson.net/post/2021/how-to-use-go-embed/
+//
 //go:embed static
 var static embed.FS
 

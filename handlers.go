@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/minlau/mdb-tool/render"
 	"net/http"
 	"strconv"
@@ -13,6 +14,7 @@ func initHandlers(r *chi.Mux, store *DatabaseStore) {
 	r.Get("/databases", getDatabases(store))
 	r.Get("/tables-metadata", getTablesMetadata(store))
 	r.Get("/query", query(store))
+	r.Mount("/debug", middleware.Profiler())
 }
 
 func ServeFiles(r chi.Router, path string, root http.FileSystem) {

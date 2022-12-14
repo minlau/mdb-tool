@@ -32,12 +32,9 @@ func Test_readConfig(t *testing.T) {
 				}},
 				DatabaseConfigs: []DatabaseConfig{
 					{
-						DatabaseDescription: DatabaseDescription{
-							Title: "test 1",
-							DatabaseGroup: DatabaseGroup{
-								GroupId:   1,
-								GroupType: "test-db",
-							},
+						DatabaseGroup: DatabaseGroup{
+							GroupName: "a",
+							GroupType: "test-db",
 						},
 						DatabaseConnConfig: DatabaseConnConfig{
 							Hostname: "localhost",
@@ -55,12 +52,9 @@ func Test_readConfig(t *testing.T) {
 						},
 					},
 					{
-						DatabaseDescription: DatabaseDescription{
-							Title: "test 2",
-							DatabaseGroup: DatabaseGroup{
-								GroupId:   2,
-								GroupType: "test-db",
-							},
+						DatabaseGroup: DatabaseGroup{
+							GroupName: "b",
+							GroupType: "test-db",
 						},
 						DatabaseConnConfig: DatabaseConnConfig{
 							Hostname: "localhost",

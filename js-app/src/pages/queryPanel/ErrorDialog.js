@@ -29,8 +29,8 @@ export default class ErrorDialog extends Component {
 
     render() {
         this.state.errors.sort(function (a, b) {
-            let o1 = a.groupId;
-            let o2 = b.groupId;
+            let o1 = a.groupName;
+            let o2 = b.groupName;
 
             if (o1 < o2) return -1;
             if (o1 > o2) return 1;
@@ -39,8 +39,8 @@ export default class ErrorDialog extends Component {
         });
         const errorsContent = this.state.errors.map(error => {
             return (
-                <div key={error.groupId}>
-                    {error.groupId}. Message: {error.message}
+                <div key={error.groupName}>
+                    {error.groupName}. Message: {error.message}
                     {error.err !== null && <Tooltip
                         content={<div style={{whiteSpace: 'pre'}}>
                             {JSON.stringify(error.err, null, 4)}

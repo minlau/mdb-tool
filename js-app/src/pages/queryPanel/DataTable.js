@@ -20,12 +20,11 @@ export default class DataTable extends PureComponent {
                 headerName: column.name,
                 field: column.fieldName
             };
-            if (column.name === "groupId") {
+            if (column.name === "groupName") {
                 element.sort = 'asc';
-                element.maxWidth = 48;
-                element.type = "numericColumn";
+                element.maxWidth = 96;
                 element.pinned = "left";
-                element.filter = "agNumberColumnFilter";
+                element.filter = "agTextColumnFilter";
             }
             columnDefs.push(element);
         });

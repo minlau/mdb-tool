@@ -1,0 +1,38 @@
+version: "3.9"
+
+volumes:
+  postgres-data:
+  mysql-data:
+
+services:
+  mysqldb:
+    image: "mysql:8.0.31"
+    volumes:
+      - mysql-data:/var/lib/mysql-data-db
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=db
+      - MYSQL_USER=mysql
+      - MYSQL_PASSWORD=admin
+      - MYSQL_ROOT_PASSWORD=admin
+  db1:
+    image: "postgres:15.0"
+    volumes:
+      - postgres-data:/var/lib/psql-data-db1
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=db1
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+  db2:
+    image: "postgres:15.0"
+    volumes:
+      - postgres-data:/var/lib/psql-data-db2
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=db2
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin

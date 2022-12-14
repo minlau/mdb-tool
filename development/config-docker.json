@@ -1,8 +1,8 @@
 {
   "dataSources": [
     {
-      "query": "select 'm' \"groupName\", 'pg' as \"groupType\", 'localhost' as hostname, 5432 as port, 'db1' as name, 'postgres' as username, 'admin' as password, 'postgresql' as type, 4 as \"maxOpenConns\", 1 as \"maxIdleConns\", 600 as \"connMaxLifetimeInSeconds\", 60 as \"connMaxIdleTimeInSeconds\";",
-      "hostname": "localhost",
+      "query": "select 'm' \"groupName\", 'pg' as \"groupType\", 'db1' as hostname, 5432 as port, 'db1' as name, 'postgres' as username, 'admin' as password, 'postgresql' as type, 4 as \"maxOpenConns\", 1 as \"maxIdleConns\", 600 as \"connMaxLifetimeInSeconds\", 60 as \"connMaxIdleTimeInSeconds\";",
+      "hostname": "db1",
       "port": 5432,
       "name": "postgres",
       "username": "postgres",
@@ -14,7 +14,7 @@
     {
       "groupName": "a",
       "groupType": "main",
-      "hostname": "localhost",
+      "hostname": "db1",
       "port": 5432,
       "name": "db1",
       "username": "postgres",
@@ -28,7 +28,7 @@
     {
       "groupName": "a",
       "groupType": "other",
-      "hostname": "localhost",
+      "hostname": "db1",
       "port": 5432,
       "name": "db1",
       "username": "postgres",
@@ -40,10 +40,10 @@
       "connMaxIdleTimeInSeconds": 60
     },
     {
-      "groupName": "b",
+      "groupName": "c",
       "groupType": "main",
-      "hostname": "localhost",
-      "port": 5433,
+      "hostname": "db2",
+      "port": 5432,
       "name": "db2",
       "username": "postgres",
       "password": "admin",
@@ -56,7 +56,7 @@
     {
       "groupName": "c",
       "groupType": "mysql",
-      "hostname": "localhost",
+      "hostname": "mysqldb",
       "port": 3306,
       "name": "db",
       "username": "mysql",

@@ -191,7 +191,7 @@ func TestGetDatabaseConfigsFromDataSources(t *testing.T) {
 					{
 						DatabaseConnConfig: config.DatabaseConfigs[0].DatabaseConnConfig,
 						Query: `
-select 1 as "groupId", 'test' as "groupType", 'test db' as title, 
+select 'a' as "groupName", 'test' as "groupType", 
 'testhost' as hostname, 5432 as port, 'test-name' as name, 'test-username' as username, 'test-password' as password, 'postgresql' as type,
 2 as "maxOpenConns", 1 as "maxIdleConns", 600 as "connMaxLifetimeInSeconds", 60 as "connMaxIdleTimeInSeconds"
 `,
@@ -200,12 +200,9 @@ select 1 as "groupId", 'test' as "groupType", 'test db' as title,
 			},
 			want: []DatabaseConfig{
 				{
-					DatabaseDescription: DatabaseDescription{
-						DatabaseGroup: DatabaseGroup{
-							GroupId:   1,
-							GroupType: "test",
-						},
-						Title: "test db",
+					DatabaseGroup: DatabaseGroup{
+						GroupName: "a",
+						GroupType: "test",
 					},
 					DatabaseConnConfig: DatabaseConnConfig{
 						Hostname: "testhost",
@@ -277,7 +274,7 @@ func TestGetDatabaseConfigsFromDataSource(t *testing.T) {
 				dataSource: DataSource{
 					DatabaseConnConfig: config.DatabaseConfigs[0].DatabaseConnConfig,
 					Query: `
-select 1 as "groupId", 'test' as "groupType", 'test db' as title, 
+select 'a' as "groupName", 'test' as "groupType", 
 'testhost' as hostname, 5432 as port, 'test-name' as name, 'test-username' as username, 'test-password' as password, 'postgresql' as type,
 2 as "maxOpenConns", 1 as "maxIdleConns", 600 as "connMaxLifetimeInSeconds", 60 as "connMaxIdleTimeInSeconds"
 `,
@@ -285,12 +282,9 @@ select 1 as "groupId", 'test' as "groupType", 'test db' as title,
 			},
 			want: []DatabaseConfig{
 				{
-					DatabaseDescription: DatabaseDescription{
-						DatabaseGroup: DatabaseGroup{
-							GroupId:   1,
-							GroupType: "test",
-						},
-						Title: "test db",
+					DatabaseGroup: DatabaseGroup{
+						GroupName: "a",
+						GroupType: "test",
 					},
 					DatabaseConnConfig: DatabaseConnConfig{
 						Hostname: "testhost",

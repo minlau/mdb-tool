@@ -5,7 +5,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/minlau/mdb-tool/render"
 	"net/http"
-	"strconv"
 	"strings"
 )
 
@@ -36,7 +35,7 @@ func ServeFiles(r chi.Router, path string, root http.FileSystem) {
 }
 
 type queryRequest struct {
-	GroupId   *int
+	GroupName *string
 	GroupType string
 	Query     string
 }
@@ -44,85 +43,65 @@ type queryRequest struct {
 func query(store *DatabaseStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req queryRequest
-		groupIdString := r.URL.Query().Get("groupId")
-		if groupIdString != "" {
-			groupIdInt, err := strconv.Atoi(groupIdString)
-			if err != nil {
-				render.Status(r, http.StatusBadRequest)
-				render.JSON(w, r, render.M{"error": err.Error()})
-				return
-			}
-			req.GroupId = &groupIdInt
+		groupNameString := r.URL.Query().Get("groupName")
+		if groupNameString != "" {
+			req.GroupName = &groupNameString
 		}
 
 		req.Query = r.URL.Query().Get("query")
 		if req.Query == "" {
-			render.Status(r, http.StatusBadRequest)
-			render.JSON(w, r, render.M{"error": "query is required"})
+			render.JSON(w, http.StatusBadRequest, render.M{"error": "query is required"})
 			return
 		}
 
 		req.GroupType = r.URL.Query().Get("groupType")
 		if req.GroupType == "" {
-			render.Status(r, http.StatusBadRequest)
-			render.JSON(w, r, render.M{"error": "groupType is required"})
+			render.JSON(w, http.StatusBadRequest, render.M{"error": "groupType is required"})
 			return
 		}
 
-		if req.GroupId == nil {
-			render.Status(r, http.StatusOK)
-			render.JSON(w, r, store.QueryMultipleDatabases(r.Context(), req.GroupType, req.Query))
+		var res interface{}
+		if req.GroupName == nil {
+			res = store.QueryMultipleDatabases(r.Context(), req.GroupType, req.Query)
 		} else {
-			render.Status(r, http.StatusOK)
-			render.JSON(w, r, store.QueryDatabase(r.Context(), *req.GroupId, req.GroupType, req.Query))
+			res = store.QueryDatabase(r.Context(), *req.GroupName, req.GroupType, req.Query)
 		}
+		render.JSON(w, http.StatusOK, res)
 	}
 }
 
 type tablesMetadataRequest struct {
-	GroupId   int
+	GroupName string
 	GroupType string
 }
 
 func getTablesMetadata(store *DatabaseStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req tablesMetadataRequest
-		groupIdString := r.URL.Query().Get("groupId")
-		if groupIdString == "" {
-			render.Status(r, http.StatusBadRequest)
-			render.JSON(w, r, render.M{"error": "groupId is required"})
+		req.GroupName = r.URL.Query().Get("groupName")
+		if req.GroupName == "" {
+			render.JSON(w, http.StatusBadRequest, render.M{"error": "groupName is required"})
 			return
 		}
-		groupIdInt, err := strconv.Atoi(groupIdString)
-		if err != nil {
-			render.Status(r, http.StatusBadRequest)
-			render.JSON(w, r, render.M{"error": err.Error()})
-			return
-		}
-		req.GroupId = groupIdInt
 
 		req.GroupType = r.URL.Query().Get("groupType")
 		if req.GroupType == "" {
-			render.Status(r, http.StatusBadRequest)
-			render.JSON(w, r, render.M{"error": "groupType is required"})
+			render.JSON(w, http.StatusBadRequest, render.M{"error": "groupType is required"})
 			return
 		}
 
-		data, err := store.GetTablesMetadata(req.GroupId, req.GroupType)
+		data, err := store.GetTablesMetadata(req.GroupName, req.GroupType)
 		if err != nil {
-			render.Status(r, http.StatusBadRequest)
-			render.JSON(w, r, render.M{"error": err.Error()})
+			render.JSON(w, http.StatusBadRequest, render.M{"error": err.Error()})
 			return
 		}
 
-		render.Status(r, http.StatusOK)
-		render.JSON(w, r, data)
+		render.JSON(w, http.StatusOK, data)
 	}
 }
 
 func getDatabases(store *DatabaseStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		render.Status(r, http.StatusOK)
-		render.JSON(w, r, store.GetDatabaseItems())
+		render.JSON(w, http.StatusOK, store.GetDatabaseItems())
 	}
 }

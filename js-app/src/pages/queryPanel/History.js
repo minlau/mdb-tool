@@ -5,7 +5,7 @@ import {highlightText} from "../../utils/select";
 
 const getQueryLabel = (item) => {
     return `${item.groupMode} ${item.groupType} ${item.database != null
-        ? `${item.database.groupId}. ${item.database.title}`
+        ? `${item.database.groupName}`
         : ''}`;
 };
 

@@ -1,24 +1,31 @@
 # MDB Tool
 
-**M**ultiple **D**ata**B**ase **Tool** simplifies querying data of multiple databases _at once_
+**M**ultiple **D**ata**B**ase **Tool** simplifies querying data from multiple databases _at once_.
+
+Usage case: you have multiple environments(separate for every/some clients) and separate database for each microservice,
+and you want to execute same query in specific microservice database of each environment. Group Name is environment and
+Group Type is microservice database.
 
 ## Features
-- Web UI
+
+- Lightweight and fast web UI
 - Query multiple databases by **group type** and view data in single table
-- Query a single database by **group type** and **group id**
+- Query a single database by **group type** and **group name**
 - Supports postgresql, mysql and firebird databases
- 
+
 ## How to build
 
 #### Development
 
 Build js app(UI) with live reload. Built UI files are saved to `static` folder
+
 ```
 cd js-app
 yarn install && yarn start 
 ```
 
 Build go executable without embedding UI files
+
 ```
 go build -tags=dev
 ```
@@ -26,12 +33,14 @@ go build -tags=dev
 #### Production
 
 Build js app(UI). Build UI files are saved to `static` folder
+
 ```
 cd js-app
 yarn install && yarn build 
 ```
 
 Build go executable with embedded UI files
+
 ```
 go build
 ```
@@ -39,11 +48,13 @@ go build
 ## How to run
 
 Required files:
+
 - executable
 - `static` folder if it is not embedded to executable
 - config file. Databases and datasources can be provided only by config file.
 
 Program arguments:
+
 - config - config file path. Default: config.json
 - port - port of application. Default: 8080
 
@@ -56,20 +67,21 @@ mdb-tool --config=config_file_path.json --port=8080
 ### Config
 
 Fields definition:
-- groupId - id of databases group (unique in group)
-- groupType - group type of database
-- title - title displayed in UI
+
+- groupName - name of databases group(environment, client)
+- groupType - group type of database(database name)
 - type - type of database. Supported: postgresql, mysql, firebird
 
 Not listed fields are used for connecting to database.  
-Keep in mind that **groupId** and **groupType** combination must be **unique**
+Keep in mind that **groupName** and **groupType** combination must be **unique**
 
 Example:
+
 ```
 {
   "dataSources": [
     {
-      "query": "select 1 as \"groupId\", 'groupType' as \"groupType\", 'title' as title, 'localhost' as hostname, 5432 as port, 'name' as name, 'username' as username, 'password' as password, 'postgresql' as type, 4 as \"maxOpenConns\", 1 as \"maxIdleConns\", 600 as \"connMaxLifetimeInSeconds\", 60 as \"connMaxIdleTimeInSeconds\"",
+      "query": "select 'a' as \"groupName\", 'groupType' as \"groupType\", 'localhost' as hostname, 5432 as port, 'name' as name, 'username' as username, 'password' as password, 'postgresql' as type, 4 as \"maxOpenConns\", 1 as \"maxIdleConns\", 600 as \"connMaxLifetimeInSeconds\", 60 as \"connMaxIdleTimeInSeconds\"",
       
       "hostname": "localhost",
       "port": 5432,
@@ -81,9 +93,8 @@ Example:
   ],
   "databaseConfigs": [
     {
-      "groupId": 1,
+      "groupName": "a",
       "groupType" : "main",
-      "title": "First",
       
       "hostname": "localhost",
       "port": 5432,

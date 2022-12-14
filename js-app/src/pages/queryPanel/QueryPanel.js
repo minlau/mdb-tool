@@ -64,7 +64,7 @@ export default class QueryPanel extends Component {
     }
 
     static selectItemPredicate(query, item) {
-        return `${item.groupId}. ${item.title} ${item.groupType}`.toLowerCase().indexOf(query.toLowerCase()) >= 0;
+        return `${item.groupName} ${item.groupType}`.toLowerCase().indexOf(query.toLowerCase()) >= 0;
     }
 
     static getSqlTypeMode(sqlType) {
@@ -173,7 +173,7 @@ export default class QueryPanel extends Component {
                 return;
             }
 
-            let tablesMetadata = this.getDatabaseTablesMetadata(database.groupId, database.groupType);
+            let tablesMetadata = this.getDatabaseTablesMetadata(database.groupName, database.groupType);
             tablesMetadata.then(data => {
                 database.tablesMetadata = data;
                 this.setState({
@@ -190,7 +190,7 @@ export default class QueryPanel extends Component {
                     return;
                 }
 
-                let tablesMetadataPromise = this.getDatabaseTablesMetadata(item.groupId, item.groupType);
+                let tablesMetadataPromise = this.getDatabaseTablesMetadata(item.groupName, item.groupType);
                 requests.push(tablesMetadataPromise.then(data => {
                     item.tablesMetadata = data;
                 }));
@@ -208,8 +208,8 @@ export default class QueryPanel extends Component {
         }
     }
 
-    getDatabaseTablesMetadata(groupId, groupType) {
-        return axios.get('/tables-metadata', {params: {groupId: groupId, groupType: groupType}})
+    getDatabaseTablesMetadata(groupName, groupType) {
+        return axios.get('/tables-metadata', {params: {groupName: groupName, groupType: groupType}})
             .then(response => {
                 if (response.status === 200) {
                     if (response.data !== null) {
@@ -229,17 +229,11 @@ export default class QueryPanel extends Component {
                     if (response.data !== null) {
                         let data = response.data;
                         data.sort(function (a, b) {
-                            let o1 = a.groupId;
-                            let o2 = b.groupId;
+                            let o1 = a.groupName;
+                            let o2 = b.groupName;
 
                             if (o1 < o2) return -1;
                             if (o1 > o2) return 1;
-
-                            let p1 = a.title.toLowerCase();
-                            let p2 = b.title.toLowerCase();
-
-                            if (p1 < p2) return -1;
-                            if (p1 > p2) return 1;
 
                             let r1 = a.groupType.toLowerCase();
                             let r2 = b.groupType.toLowerCase();
@@ -272,14 +266,14 @@ export default class QueryPanel extends Component {
         if (!modifiers.matchesPredicate) {
             return null;
         }
-        const text = `${item.groupId}. ${item.title}`;
+        const text = `${item.groupName}`;
         return (
             <MenuItem
                 active={modifiers.active}
                 disabled={modifiers.disabled}
                 label={item.groupType}
                 onClick={handleClick}
-                key={`${item.groupId}.${item.groupType}`}
+                key={`${item.groupName}.${item.groupType}`}
                 text={highlightText(text, query)}
             />
         );
@@ -298,7 +292,7 @@ export default class QueryPanel extends Component {
         let selection = this.codeMirror.editor.getSelection().trim();
         let singleMode = this.state.groupMode === false;
         let reqParams = {
-            groupId: (singleMode ? this.state.database.groupId : null),
+            groupName: (singleMode ? this.state.database.groupName : null),
             groupType: this.state.groupType,
             query: (selection.length === 0 ? this.state.query : selection)
         };
@@ -322,7 +316,7 @@ export default class QueryPanel extends Component {
                     if (singleMode) {
                         if (response.data.error !== null) {
                             let err = response.data.error;
-                            err.groupId = reqParams.groupId;
+                            err.groupName = reqParams.groupName;
                             errors.push(err);
                         }
                         if (response.data.data !== null
@@ -334,7 +328,7 @@ export default class QueryPanel extends Component {
                         response.data.forEach((element) => {
                             if (element.error !== null) {
                                 let err = element.error;
-                                err.groupId = element.groupId;
+                                err.groupName = element.groupName;
                                 errors.push(err);
                             }
 
@@ -344,12 +338,12 @@ export default class QueryPanel extends Component {
                                 return;
                             }
 
-                            dbColumns.push({groupId: element.groupId, columns: element.data.columns});
+                            dbColumns.push({groupName: element.groupName, columns: element.data.columns});
 
-                            //add groupId column and set rows groupId field value
-                            element.data.columns.unshift({name: "groupId", fieldName: "groupId"});
+                            //add groupName column and set rows groupName field value
+                            element.data.columns.unshift({name: "groupName", fieldName: "groupName"});
                             element.data.rows.forEach(row => {
-                                row.groupId = element.groupId;
+                                row.groupName = element.groupName;
                             });
 
                             data.rows.push(...element.data.rows);
@@ -376,7 +370,7 @@ export default class QueryPanel extends Component {
                             })
                             if (missingColumns.length > 0) {
                                 let err = {
-                                    groupId: e.groupId,
+                                    groupName: e.groupName,
                                     message: "missing columns",
                                     err: missingColumns
                                 };
@@ -390,7 +384,7 @@ export default class QueryPanel extends Component {
                 error => {
                     this.setState({
                         data: {columns: [], rows: []},
-                        errors: [{groupId: "Request", err: "Request has been canceled"}],
+                        errors: [{groupName: "Request", err: "Request has been canceled"}],
                         executingQuery: false,
                         requestCancel: null
                     });
@@ -419,7 +413,7 @@ export default class QueryPanel extends Component {
         let selectedDatabase = this.state.database;
         if (selectedDatabase != null) {
             for (const item of this.state.databases) {
-                if (item.groupId === selectedDatabase.groupId && item.groupType === groupType) {
+                if (item.groupName === selectedDatabase.groupName && item.groupType === groupType) {
                     selectedDatabase = item;
                     break;
                 }
@@ -589,7 +583,7 @@ const DatabaseSelect = React.memo((props) => {
             <Button
                 icon="database"
                 text={props.database !== null
-                    ? props.database.groupId + ". " + props.database.title + " │" + props.database.groupType
+                    ? props.database.groupName + " │" + props.database.groupType
                     : '-'}
                 rightIcon="double-caret-vertical"
                 disabled={props.disabled}

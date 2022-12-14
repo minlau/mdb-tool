@@ -5,9 +5,9 @@ import (
 )
 
 type GroupQueryResult struct {
-	GroupId int         `json:"groupId"`
-	Data    *QueryData  `json:"data"`
-	Error   *QueryError `json:"error"`
+	GroupName string      `json:"groupName"`
+	Data      *QueryData  `json:"data"`
+	Error     *QueryError `json:"error"`
 }
 
 type QueryData struct {

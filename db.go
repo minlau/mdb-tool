@@ -17,18 +17,13 @@ type DataSource struct {
 }
 
 type DatabaseConfig struct {
-	DatabaseDescription
+	DatabaseGroup
 	DatabaseConnConfig
 	DatabaseConnPoolConfig
 }
 
-type DatabaseDescription struct {
-	DatabaseGroup
-	Title string `json:"title"`
-}
-
 type DatabaseGroup struct {
-	GroupId   int    `db:"groupId" json:"groupId"`
+	GroupName string `db:"groupName" json:"groupName"`
 	GroupType string `db:"groupType" json:"groupType"`
 }
 

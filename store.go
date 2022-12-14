@@ -54,7 +54,7 @@ func (s *DatabaseStore) AddDatabase(config DatabaseConfig) error {
 	defer s.m.Unlock()
 	if _, ok := s.databases[config.DatabaseGroup]; ok {
 		db.Close()
-		return errors.Errorf("database is already added with groupId=%v, groupType=%v", config.GroupId,
+		return errors.Errorf("database is already added with groupName=%v, groupType=%v", config.GroupName,
 			config.GroupType)
 	}
 	s.databases[config.DatabaseGroup] = DatabaseInstance{config, db}
@@ -129,65 +129,64 @@ func queryTablesMetadata(db *sqlx.DB, query string) (map[string][]string, error)
 	return data, nil
 }
 
-func (s *DatabaseStore) GetTablesMetadata(groupId int, groupType string) (map[string][]string, error) {
-	if databaseInstance, ok := s.databases[DatabaseGroup{groupId, groupType}]; ok {
-		sqlType := databaseInstance.Config.Type
-		query := getTablesMetadataSql(sqlType)
+func (s *DatabaseStore) GetTablesMetadata(groupName string, groupType string) (map[string][]string, error) {
+	if databaseInstance, ok := s.databases[DatabaseGroup{groupName, groupType}]; ok {
+		query := getTablesMetadataSql(databaseInstance.Config.Type)
 		data, err := queryTablesMetadata(databaseInstance.DB, query)
 		return data, err
 	} else {
-		return nil, errors.Errorf("no database registered with groupId: %d, groupType: %s", groupId, groupType)
+		return nil, errors.Errorf("no database registered with groupName: %s, groupType: %s", groupName, groupType)
 	}
 }
 
-func (s *DatabaseStore) QueryDatabase(ctx context.Context, groupId int, groupType string, query string) GroupQueryResult {
-	if databaseInstance, ok := s.databases[DatabaseGroup{groupId, groupType}]; ok {
-		data, err := executeQuery(ctx, databaseInstance.DB, query)
-		return GroupQueryResult{GroupId: groupId, Data: data, Error: NewQueryError(err)}
-	} else {
+func (s *DatabaseStore) QueryDatabase(ctx context.Context, groupName string, groupType string, query string) GroupQueryResult {
+	databaseInstance, ok := s.databases[DatabaseGroup{groupName, groupType}]
+	if !ok {
 		return GroupQueryResult{
-			GroupId: groupId,
-			Data:    nil,
-			Error:   NewQueryError(errors.Errorf("no database registered with groupId: %d, groupType: %s", groupId, groupType)),
+			GroupName: groupName,
+			Data:      nil,
+			Error:     NewQueryError(errors.Errorf("no database registered with groupName: %s, groupType: %s", groupName, groupType)),
 		}
 	}
+
+	data, err := executeQuery(ctx, databaseInstance.DB, query)
+	return GroupQueryResult{GroupName: groupName, Data: data, Error: NewQueryError(err)}
 }
 
-//does not have timeout, might be a problem
 func (s *DatabaseStore) QueryMultipleDatabases(ctx context.Context, groupType string, query string) []GroupQueryResult {
 	var results []GroupQueryResult
 	var mutex = &sync.Mutex{}
-	var filteredDatabases = make(map[int]*sqlx.DB)
+	var filteredDatabases = make(map[string]*sqlx.DB)
 
 	for key, value := range s.databases {
 		if key.GroupType == groupType {
-			filteredDatabases[key.GroupId] = value.DB
+			filteredDatabases[key.GroupName] = value.DB
 		}
 	}
 
 	var wg sync.WaitGroup
-	for groupId, db := range filteredDatabases {
+	for groupName, db := range filteredDatabases {
 		wg.Add(1)
-		go func(groupId int, db *sqlx.DB) {
+		go func(groupName string, db *sqlx.DB) {
 			defer wg.Done()
 
 			data, err := executeQuery(ctx, db, query)
 			var groupQueryResult = GroupQueryResult{
-				groupId,
+				groupName,
 				data,
 				NewQueryError(err),
 			}
 			mutex.Lock()
 			defer mutex.Unlock()
 			results = append(results, groupQueryResult)
-		}(groupId, db)
+		}(groupName, db)
 	}
 	wg.Wait()
 	return results
 }
 
 type DatabaseItem struct {
-	DatabaseDescription
+	DatabaseGroup
 	Type string `json:"type"`
 }
 
@@ -195,8 +194,8 @@ func (s *DatabaseStore) GetDatabaseItems() []DatabaseItem {
 	arr := make([]DatabaseItem, 0, len(s.databases))
 	for _, value := range s.databases {
 		arr = append(arr, DatabaseItem{
-			DatabaseDescription: value.Config.DatabaseDescription,
-			Type:                value.Config.Type,
+			DatabaseGroup: value.Config.DatabaseGroup,
+			Type:          value.Config.Type,
 		})
 	}
 	return arr

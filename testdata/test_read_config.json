@@ -1,9 +1,8 @@
 {
   "databaseConfigs": [
     {
-      "groupId": 1,
+      "groupName": "a",
       "groupType": "test-db",
-      "title": "test 1",
       "hostname": "localhost",
       "port": 5432,
       "name": "test-non-existing-1",
@@ -16,9 +15,8 @@
       "connMaxIdleTimeInSeconds": 60
     },
     {
-      "groupId": 2,
+      "groupName": "b",
       "groupType": "test-db",
-      "title": "test 2",
       "hostname": "localhost",
       "port": 5432,
       "name": "test-non-existing-2",

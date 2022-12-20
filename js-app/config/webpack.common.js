@@ -1,9 +1,9 @@
 const path = require('path');
-const merge = require('webpack-merge');
-const UglifyJsPlugin = require("terser-webpack-plugin");
+const {merge} = require('webpack-merge');
+const TerserPlugin = require("terser-webpack-plugin");
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 
 module.exports = merge([{
     entry: './src/index.js',
@@ -15,11 +15,7 @@ module.exports = merge([{
                 use: "babel-loader?cacheDirectory"
             }, {
                 test: /\.css$/,
-                use: [
-                    MiniCssExtractPlugin.loader,
-                    // 'style-loader',
-                    'css-loader'
-                ]
+                use: [MiniCssExtractPlugin.loader, "css-loader"],
             }, {
                 test: /\.(png|jpg|gif|svg|eot|ttf|woff|woff2)$/,
                 use: 'url-loader?limit=1024'
@@ -37,12 +33,11 @@ module.exports = merge([{
             },
         },
         minimizer: [
-            new UglifyJsPlugin({
-                cache: true,
+            new TerserPlugin({
+                minify: TerserPlugin.terserMinify,
                 parallel: true,
-                sourceMap: true // set to true if you want JS source maps
             }),
-            new OptimizeCSSAssetsPlugin({})
+            new CssMinimizerPlugin(),
         ]
     },
     output: {
@@ -52,8 +47,8 @@ module.exports = merge([{
     plugins: [
         new HtmlWebpackPlugin({template: './src/index.html', filename: '../index.html'}),
         new MiniCssExtractPlugin({
-            filename: "main.min.css",
-            chunkFilename: "main.chunk.css"
+            filename: "[name].min.css",
+            chunkFilename: "[name].chunk.css"
         })
     ]
 }]);

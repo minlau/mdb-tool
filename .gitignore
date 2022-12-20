@@ -1,5 +1,6 @@
 # js dependencies
-/js-app/node_modules
+/js-app/.yarn/*
+/js-app/.pnp.*
 
 # js build
 /static

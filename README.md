@@ -15,19 +15,25 @@ Group Type is microservice database.
 
 ## How to build
 
+`Dockerfile` can be used to build and run. To build and run locally you need(might work with lower versions):
+
+- Go 1.19
+- Node 19
+- Yarn 3
+
 #### Development
 
 Build js app(UI) with live reload. Built UI files are saved to `static` folder
 
 ```
-cd js-app
+cd web/ui/js-app
 yarn install && yarn start 
 ```
 
 Build go executable without embedding UI files
 
 ```
-go build -tags=dev
+go build ./cmd/mdb-tool -tags=dev
 ```
 
 #### Production
@@ -35,14 +41,14 @@ go build -tags=dev
 Build js app(UI). Build UI files are saved to `static` folder
 
 ```
-cd js-app
+cd web/ui/js-app
 yarn install && yarn build 
 ```
 
 Build go executable with embedded UI files
 
 ```
-go build
+go build ./cmd/mdb-tool
 ```
 
 ## How to run
@@ -81,11 +87,11 @@ Example:
 {
   "dataSources": [
     {
-      "query": "select 'a' as \"groupName\", 'groupType' as \"groupType\", 'localhost' as hostname, 5432 as port, 'name' as name, 'username' as username, 'password' as password, 'postgresql' as type, 4 as \"maxOpenConns\", 1 as \"maxIdleConns\", 600 as \"connMaxLifetimeInSeconds\", 60 as \"connMaxIdleTimeInSeconds\"",
+      "query": "select 'groupName' as \"groupName\", 'groupType' as \"groupType\", 'localhost' as hostname, 5432 as port, 'name' as name, 'username' as username, 'password' as password, 'postgresql' as type, 4 as \"maxOpenConns\", 1 as \"maxIdleConns\", 600 as \"connMaxLifetimeInSeconds\", 60 as \"connMaxIdleTimeInSeconds\"",
       
       "hostname": "localhost",
       "port": 5432,
-      "name": "db1",
+      "name": "db",
       "username": "postgres",
       "password": "admin",
       "type": "postgresql"
@@ -93,12 +99,12 @@ Example:
   ],
   "databaseConfigs": [
     {
-      "groupName": "a",
-      "groupType" : "main",
+      "groupName": "test-env-1",
+      "groupType" : "messaging",
       
       "hostname": "localhost",
       "port": 5432,
-      "name": "db1",
+      "name": "messaging",
       "username": "postgres",
       "password": "admin",
       "type": "postgresql",

@@ -1,4 +1,4 @@
-package main
+package store
 
 import (
 	"context"
@@ -7,9 +7,7 @@ import (
 	goJson "github.com/goccy/go-json"
 	iterJson "github.com/json-iterator/go"
 	"github.com/segmentio/encoding/json"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -35,14 +33,14 @@ const benchQuery = `select * from messages limit 100000`
 const benchGroupType = "test"
 
 func initDatabaseStore() *DatabaseStore {
-	config, err := readConfig("testdata/bench_config.json")
+	cfg, err := readConfig("testdata/bench_config.json")
 	if err != nil {
-		panic(fmt.Sprintf("failed to read config. %v", err))
+		panic(fmt.Sprintf("failed to read cfg. %v", err))
 	}
 
 	databaseStore := NewDatabaseStore()
-	databaseStore.AddDatabases(config.DatabaseConfigs)
-	databaseConfigs, errs := GetDatabaseConfigsFromDataSources(config.DataSources)
+	databaseStore.AddDatabases(cfg.DatabaseConfigs)
+	databaseConfigs, errs := GetDatabaseConfigsFromDataSources(cfg.DataSources)
 	if len(errs) > 0 {
 		panic(fmt.Sprintf("GetDatabaseConfigsFromDataSources contains errors. Errors: %v", err))
 	}
@@ -114,32 +112,54 @@ func BenchmarkQuery(b *testing.B) {
 	}
 }
 
-func BenchmarkRequest(b *testing.B) {
-	u, err := url.Parse("localhost/query")
-	if err != nil {
-		b.Fatalf("failed to parse url. %e", err)
+func Test_getFieldNames(t *testing.T) {
+	type args struct {
+		columnNames []string
 	}
-	q := u.Query()
-	q.Set("groupType", benchGroupType)
-	q.Set("query", benchQuery)
-	u.RawQuery = q.Encode()
-
-	req, err := http.NewRequest("GET", u.RequestURI(), nil)
-	if err != nil {
-		b.Fatalf("failed to create new request. %e", err)
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "empty",
+			args: args{
+				columnNames: nil,
+			},
+			want: []string{},
+		},
+		{
+			name: "no duplicates",
+			args: args{
+				columnNames: []string{"id", "name"},
+			},
+			want: []string{"id", "name"},
+		},
+		{
+			name: "duplicates",
+			args: args{
+				columnNames: []string{"id", "name", "id", "name"},
+			},
+			want: []string{"id", "name", "id__1", "name__1"},
+		},
+		{
+			name: "same duplicates and conflicting name at the start",
+			args: args{
+				columnNames: []string{"id__1", "id", "id", "id"},
+			},
+			want: []string{"id__1", "id", "id__2", "id__3"},
+		},
+		{
+			name: "same duplicates and conflicting name at the end",
+			args: args{
+				columnNames: []string{"id", "id", "id", "id__1"},
+			},
+			want: []string{"id", "id__1", "id__2", "id__1__1"},
+		},
 	}
-
-	databaseStore := initDatabaseStore()
-	initData(databaseStore, benchGroupType)
-	defer clearData(databaseStore, benchGroupType)
-
-	handler := query(databaseStore)
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		rr := httptest.NewRecorder()
-		handler.ServeHTTP(rr, req)
-		if rr.Code != 200 {
-			b.Errorf("code is not 200. %d", rr.Code)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, getFieldNames(tt.args.columnNames), "getFieldNames(%v)", tt.args.columnNames)
+		})
 	}
 }

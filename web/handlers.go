@@ -1,38 +1,10 @@
-package main
+package web
 
 import (
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/minlau/mdb-tool/render"
+	"github.com/minlau/mdb-tool/store"
 	"net/http"
-	"strings"
 )
-
-func initHandlers(r *chi.Mux, store *DatabaseStore) {
-	ServeFiles(r, "/", getStaticDir())
-	r.Get("/databases", getDatabases(store))
-	r.Get("/tables-metadata", getTablesMetadata(store))
-	r.Get("/query", query(store))
-	r.Mount("/debug", middleware.Profiler())
-}
-
-func ServeFiles(r chi.Router, path string, root http.FileSystem) {
-	if strings.ContainsAny(path, "{}*") {
-		panic("ServeFiles does not permit URL parameters.")
-	}
-
-	fs := http.StripPrefix(path, http.FileServer(root))
-
-	if path != "/" && path[len(path)-1] != '/' {
-		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
-		path += "/"
-	}
-	path += "*"
-
-	r.Get(path, func(w http.ResponseWriter, r *http.Request) {
-		fs.ServeHTTP(w, r)
-	})
-}
 
 type queryRequest struct {
 	GroupName *string
@@ -40,7 +12,7 @@ type queryRequest struct {
 	Query     string
 }
 
-func query(store *DatabaseStore) http.HandlerFunc {
+func query(store store.DatabaseStoreI) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req queryRequest
 		groupNameString := r.URL.Query().Get("groupName")
@@ -75,7 +47,7 @@ type tablesMetadataRequest struct {
 	GroupType string
 }
 
-func getTablesMetadata(store *DatabaseStore) http.HandlerFunc {
+func getTablesMetadata(store store.DatabaseStoreI) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req tablesMetadataRequest
 		req.GroupName = r.URL.Query().Get("groupName")
@@ -100,7 +72,7 @@ func getTablesMetadata(store *DatabaseStore) http.HandlerFunc {
 	}
 }
 
-func getDatabases(store *DatabaseStore) http.HandlerFunc {
+func getDatabases(store store.DatabaseStoreI) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, http.StatusOK, store.GetDatabaseItems())
 	}

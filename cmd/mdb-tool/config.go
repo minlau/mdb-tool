@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/minlau/mdb-tool/store"
 	"os"
 
 	"github.com/pkg/errors"
@@ -8,11 +9,11 @@ import (
 )
 
 type Config struct {
-	DataSources     []DataSource
-	DatabaseConfigs []DatabaseConfig
+	DataSources     []store.DataSource
+	DatabaseConfigs []store.DatabaseConfig
 }
 
-func readConfig(path string) (*Config, error) {
+func LoadConfig(path string) (*Config, error) {
 	configFile, err := os.Open(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open file. path=%s", path)

@@ -5,10 +5,70 @@ volumes:
   mysql-data:
 
 services:
-  mysqldb:
-    image: "mysql:8.0.31"
+  blueberry-messaging:
+    image: "postgres:15.1"
     volumes:
-      - mysql-data:/var/lib/mysql-data-db
+      - postgres-data:/var/lib/psql-data-blueberry-messaging
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+  lemon-messaging:
+    image: "postgres:15.1"
+    volumes:
+      - postgres-data:/var/lib/psql-data-lemon-messaging
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+  pear-messaging:
+    image: "postgres:15.1"
+    volumes:
+      - postgres-data:/var/lib/psql-data-pear-messaging
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_DB=db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+  blueberry-accounting:
+    image: "postgres:15.1"
+    volumes:
+      - postgres-data:/var/lib/psql-data-blueberry-accounting
+    ports:
+      - "5435:5432"
+    environment:
+      - POSTGRES_DB=db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+  lemon-accounting:
+    image: "postgres:15.1"
+    volumes:
+      - postgres-data:/var/lib/psql-data-lemon-accounting
+    ports:
+      - "5436:5432"
+    environment:
+      - POSTGRES_DB=db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+  pear-accounting:
+    image: "postgres:15.1"
+    volumes:
+      - postgres-data:/var/lib/psql-data-pear-accounting
+    ports:
+      - "5437:5432"
+    environment:
+      - POSTGRES_DB=db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+  blueberry-user-mgmt:
+    image: "mysql:8.0.32"
+    volumes:
+      - mysql-data:/var/lib/mysql-data-blueberry-user-mgmt
     ports:
       - "3306:3306"
     environment:
@@ -16,23 +76,25 @@ services:
       - MYSQL_USER=mysql
       - MYSQL_PASSWORD=admin
       - MYSQL_ROOT_PASSWORD=admin
-  db1:
-    image: "postgres:15.0"
+  lemon-user-mgmt:
+    image: "mysql:8.0.32"
     volumes:
-      - postgres-data:/var/lib/psql-data-db1
+      - mysql-data:/var/lib/mysql-data-lemon-user-mgmt
     ports:
-      - "5432:5432"
+      - "3307:3306"
     environment:
-      - POSTGRES_DB=db1
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=admin
-  db2:
-    image: "postgres:15.0"
+      - MYSQL_DATABASE=db
+      - MYSQL_USER=mysql
+      - MYSQL_PASSWORD=admin
+      - MYSQL_ROOT_PASSWORD=admin
+  pear-user-mgmt:
+    image: "mysql:8.0.32"
     volumes:
-      - postgres-data:/var/lib/psql-data-db2
+      - mysql-data:/var/lib/mysql-data-pear-user-mgmt
     ports:
-      - "5433:5432"
+      - "3308:3306"
     environment:
-      - POSTGRES_DB=db2
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=admin
+      - MYSQL_DATABASE=db
+      - MYSQL_USER=mysql
+      - MYSQL_PASSWORD=admin
+      - MYSQL_ROOT_PASSWORD=admin

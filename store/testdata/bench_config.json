@@ -1,11 +1,11 @@
 {
   "databaseConfigs": [
     {
-      "groupName": "a",
+      "groupName": "bench",
       "groupType": "test",
       "hostname": "localhost",
       "port": 5432,
-      "name": "db1",
+      "name": "db",
       "username": "postgres",
       "password": "admin",
       "type": "postgresql",

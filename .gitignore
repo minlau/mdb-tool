@@ -1,13 +1,13 @@
 # js dependencies
-/js-app/.yarn/*
-/js-app/.pnp.*
+/web/ui/js-app/.yarn/*
+/web/ui/js-app/.pnp.*
 
 # js build
-/static
+/web/ui/static
 
 # IDE folders
 .idea
 .vscode
 
 # executable
-mdb-tool*
+/mdb-tool*

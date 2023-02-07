@@ -1,4 +1,4 @@
-package main
+package store
 
 import (
 	"context"
@@ -10,6 +10,15 @@ import (
 	"sync"
 	"time"
 )
+
+type DatabaseStoreI interface {
+	AddDatabases(databases []DatabaseConfig)
+	AddDatabase(config DatabaseConfig) error
+	GetTablesMetadata(groupName string, groupType string) (map[string][]string, error)
+	QueryDatabase(ctx context.Context, groupName string, groupType string, query string) GroupQueryResult
+	QueryMultipleDatabases(ctx context.Context, groupType string, query string) []GroupQueryResult
+	GetDatabaseItems() []DatabaseItem
+}
 
 type DatabaseInstance struct {
 	Config DatabaseConfig
@@ -120,23 +129,20 @@ func queryTablesMetadata(db *sqlx.DB, query string) (map[string][]string, error)
 			return nil, err
 		}
 
-		if val, ok := data[tableName]; ok {
-			data[tableName] = append(val, columnName)
-		} else {
-			data[tableName] = []string{columnName}
-		}
+		data[tableName] = append(data[tableName], columnName)
 	}
 	return data, nil
 }
 
 func (s *DatabaseStore) GetTablesMetadata(groupName string, groupType string) (map[string][]string, error) {
-	if databaseInstance, ok := s.databases[DatabaseGroup{groupName, groupType}]; ok {
-		query := getTablesMetadataSql(databaseInstance.Config.Type)
-		data, err := queryTablesMetadata(databaseInstance.DB, query)
-		return data, err
-	} else {
+	databaseInstance, ok := s.databases[DatabaseGroup{groupName, groupType}]
+	if !ok {
 		return nil, errors.Errorf("no database registered with groupName: %s, groupType: %s", groupName, groupType)
 	}
+
+	query := getTablesMetadataSql(databaseInstance.Config.Type)
+	data, err := queryTablesMetadata(databaseInstance.DB, query)
+	return data, err
 }
 
 func (s *DatabaseStore) QueryDatabase(ctx context.Context, groupName string, groupType string, query string) GroupQueryResult {
@@ -229,19 +235,7 @@ func executeQuery(ctx context.Context, db *sqlx.DB, query string) (*QueryData, e
 				return &data, err
 			}
 
-			fieldNames = make([]string, len(columnNames))
-			copy(fieldNames, columnNames)
-			for i, fieldName := range fieldNames {
-				if contains(fieldNames[:i], fieldName) {
-					for j := 0; j < i; j++ {
-						newFieldName := fieldName + "__" + strconv.Itoa(j+1)
-						if !contains(fieldNames[:i], newFieldName) {
-							fieldNames[i] = newFieldName
-							break
-						}
-					}
-				}
-			}
+			fieldNames = getFieldNames(columnNames)
 
 			columns := make([]Column, 0, len(columnNames))
 			for i := range columnNames {
@@ -265,6 +259,25 @@ func executeQuery(ctx context.Context, db *sqlx.DB, query string) (*QueryData, e
 		return &data, err
 	}
 	return &data, nil
+}
+
+// getFieldNames creates a unique list of columns names while renaming duplicate column names if needed.
+// I.e.: id, name, type_id, group_id, id, name, id, name -> id, name, type_id, group_id, id__1, name__1, id__2, name__2
+func getFieldNames(columnNames []string) []string {
+	fieldNames := make([]string, len(columnNames))
+	copy(fieldNames, columnNames)
+	for i, fieldName := range fieldNames {
+		if contains(fieldNames[:i], fieldName) {
+			for j := 0; j < i; j++ {
+				newFieldName := fieldName + "__" + strconv.Itoa(j+1)
+				if !contains(fieldNames[:i], newFieldName) {
+					fieldNames[i] = newFieldName
+					break
+				}
+			}
+		}
+	}
+	return fieldNames
 }
 
 func contains(arr []string, value string) bool {

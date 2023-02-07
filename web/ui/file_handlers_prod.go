@@ -1,6 +1,6 @@
 //go:build !dev
 
-package main
+package ui
 
 import (
 	"embed"
@@ -13,7 +13,7 @@ import (
 //go:embed static
 var static embed.FS
 
-func getStaticDir() http.FileSystem {
+func GetStaticDir() http.FileSystem {
 	dir, err := fs.Sub(static, "static")
 	if err != nil {
 		panic("failed to embed 'assets' folder. Error: " + err.Error())

@@ -1,4 +1,4 @@
-package main
+package store
 
 import (
 	"github.com/segmentio/encoding/json"
@@ -15,6 +15,8 @@ type QueryData struct {
 	Rows    []map[string]interface{} `json:"rows"`
 }
 
+// Column is used to store original column name(Name) and custom name(FieldName) for json response.
+// This is required, because sql row can contain multiple columns with same name
 type Column struct {
 	Name      string `json:"name"`
 	FieldName string `json:"fieldName"`

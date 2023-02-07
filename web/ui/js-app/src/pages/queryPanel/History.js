@@ -43,13 +43,13 @@ export default class History extends PureComponent {
     addQuery(timestamp, groupMode, groupType, database, query) {
         let queries = this.state.queries.slice();
         if (queries.length > 0) {
-            let lastElement = queries[queries.length - 1];
+            let lastElement = queries[0];
             if (lastElement.groupMode === groupMode && lastElement.groupType === groupType &&
                 lastElement.database === database && lastElement.query === query) {
                 return;
             }
         }
-        queries.push({timestamp, groupMode, groupType, database, query});
+        queries.unshift({timestamp, groupMode, groupType, database, query});
         this.setState({queries: queries});
     }
 

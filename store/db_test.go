@@ -1,11 +1,33 @@
-package main
+package store
 
 import (
 	"github.com/pkg/errors"
+	"github.com/segmentio/encoding/json"
 	"github.com/stretchr/testify/assert"
+	"os"
 	"reflect"
 	"testing"
 )
+
+type config struct {
+	DataSources     []DataSource
+	DatabaseConfigs []DatabaseConfig
+}
+
+func readConfig(path string) (*config, error) {
+	configFile, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to open file. path=%s", path)
+	}
+	defer configFile.Close()
+
+	var cfg *config
+	err = json.NewDecoder(configFile).Decode(&cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse file")
+	}
+	return cfg, nil
+}
 
 func TestGetConnectionUrl(t *testing.T) {
 	tests := []struct {

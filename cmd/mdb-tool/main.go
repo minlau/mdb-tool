@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/minlau/mdb-tool/store"
+	"github.com/minlau/mdb-tool/web"
 	"github.com/rs/zerolog/log"
 	"net/http"
 )
@@ -18,17 +18,17 @@ func main() {
 
 	log.Info().Msg("starting app")
 
-	config, err := readConfig(*configFilePath)
+	cfg, err := LoadConfig(*configFilePath)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to read config. closing app")
+		log.Error().Err(err).Msg("failed to load config. closing app")
 		return
 	}
 
 	log.Info().Msg("starting databases initialization")
 
-	databaseStore := NewDatabaseStore()
-	databaseStore.AddDatabases(config.DatabaseConfigs)
-	databaseConfigs, errs := GetDatabaseConfigsFromDataSources(config.DataSources)
+	databaseStore := store.NewDatabaseStore()
+	databaseStore.AddDatabases(cfg.DatabaseConfigs)
+	databaseConfigs, errs := store.GetDatabaseConfigsFromDataSources(cfg.DataSources)
 	for _, errItem := range errs {
 		log.Warn().Err(errItem).Msg("failed to get database configs from db")
 	}
@@ -38,12 +38,7 @@ func main() {
 
 	log.Info().Msg("starting handlers initialization")
 
-	r := chi.NewRouter()
-	r.Use(middleware.Compress(1))
-	r.Use(ZeroLogLogger)
-	r.Use(middleware.Recoverer)
-
-	initHandlers(r, databaseStore)
+	r := web.New(databaseStore)
 
 	log.Info().Msg("finished handlers initialization")
 

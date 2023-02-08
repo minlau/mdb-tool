@@ -19,5 +19,5 @@ func JSON(w http.ResponseWriter, status int, v interface{}) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
-	w.Write(buf.Bytes())
+	w.Write(buf.Bytes()) //nolint:errcheck
 }

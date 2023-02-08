@@ -10,6 +10,7 @@ import (
 
 // https://blog.carlmjohnson.net/post/2021/how-to-use-go-embed/
 //
+//nolint:typecheck
 //go:embed static
 var static embed.FS
 

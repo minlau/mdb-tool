@@ -1,10 +1,17 @@
 # MDB Tool
 
+[![CI](https://github.com/minlau/mdb-tool/actions/workflows/ci.yml/badge.svg)](https://github.com/minlau/mdb-tool/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/minlau/mdb-tool)](https://goreportcard.com/report/github.com/minlau/mdb-tool)
+
 **M**ultiple **D**ata**B**ase **Tool** simplifies querying data from multiple databases _at once_.
 
 Usage case: you have multiple environments(separate for every/some clients) and separate database for each microservice,
 and you want to execute same query in specific microservice database of each environment. Group Name is environment and
 Group Type is microservice database.
+
+## Preview
+
+https://user-images.githubusercontent.com/5850570/217761596-b54b9fed-eb48-4af4-9e44-f479e65778c6.mp4
 
 ## Features
 

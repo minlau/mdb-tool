@@ -5,6 +5,7 @@ WORKDIR /app/code
 RUN yarn set version berry
 
 COPY /web/ui/js-app/yarn.lock .
+COPY /web/ui/js-app/package.json .
 
 RUN yarn install
 

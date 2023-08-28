@@ -37,3 +37,12 @@ jobs:
         with:
           version: v1.54
           args: --timeout=5m
+
+  security_go:
+    name: Go dependencies vulnerabilities check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: '1.21'
+          go-package: ./...

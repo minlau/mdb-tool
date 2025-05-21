@@ -22,7 +22,8 @@ https://user-images.githubusercontent.com/5850570/217761596-b54b9fed-eb48-4af4-9
 
 ## How to build
 
-`Dockerfile` can be used to build and run. To build and run locally you need(might work with lower versions):
+Docker is the easiest way to build and run. `docker-compose up` command can be used to build and run project with 
+databases used for testing. To build and run locally you need(might work with lower versions):
 
 - Go 1.19
 - Node 19

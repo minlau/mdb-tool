@@ -5,6 +5,22 @@ volumes:
   mysql-data:
 
 services:
+  backend:
+    image: mdb-tool
+    build:
+      dockerfile: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - blueberry-messaging
+      - lemon-messaging
+      - pear-messaging
+      - blueberry-accounting
+      - lemon-accounting
+      - pear-accounting
+      - blueberry-user-mgmt
+      - lemon-user-mgmt
+      - pear-user-mgmt
   blueberry-messaging:
     image: "postgres:15.1"
     volumes:

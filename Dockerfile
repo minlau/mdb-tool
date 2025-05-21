@@ -4,16 +4,13 @@ WORKDIR /app/code
 
 RUN yarn set version berry
 
-COPY /web/ui/js-app/yarn.lock .
-COPY /web/ui/js-app/package.json .
+COPY /web/ui/js-app .
 
 RUN yarn install
 
-COPY /web/ui/js-app .
-
 RUN yarn build
 
-FROM golang:1.20.0-alpine AS go-build
+FROM golang:1.24.3-alpine AS go-build
 
 WORKDIR /app
 

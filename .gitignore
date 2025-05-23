@@ -3,7 +3,8 @@
 /web/ui/js-app/.pnp.*
 
 # js build
-/web/ui/static
+/web/ui/static/*
+!/web/ui/static/.gitkeep
 
 # IDE folders
 .idea

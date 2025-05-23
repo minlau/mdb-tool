@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/minlau/mdb-tool/store"
 	"os"
 
 	"github.com/pkg/errors"
 	"github.com/segmentio/encoding/json"
+
+	"github.com/minlau/mdb-tool/internal/utils/closer"
+	"github.com/minlau/mdb-tool/store"
 )
 
 type Config struct {
@@ -18,7 +20,7 @@ func LoadConfig(path string) (*Config, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open file. path=%s", path)
 	}
-	defer configFile.Close()
+	defer closer.Handle(configFile, "config file")
 
 	var config *Config
 	err = json.NewDecoder(configFile).Decode(&config)

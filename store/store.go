@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/jmoiron/sqlx"
+	"github.com/minlau/mdb-tool/internal/utils/closer"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"strconv"
@@ -62,7 +63,7 @@ func (s *DatabaseStore) AddDatabase(config DatabaseConfig) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 	if _, ok := s.databases[config.DatabaseGroup]; ok {
-		db.Close()
+		closer.Handle(db, "database")
 		return errors.Errorf("database is already added with groupName=%v, groupType=%v", config.GroupName,
 			config.GroupType)
 	}

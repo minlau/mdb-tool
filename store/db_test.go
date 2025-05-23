@@ -1,12 +1,15 @@
 package store
 
 import (
-	"github.com/pkg/errors"
-	"github.com/segmentio/encoding/json"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/pkg/errors"
+	"github.com/segmentio/encoding/json"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/minlau/mdb-tool/internal/utils/closer"
 )
 
 type config struct {
@@ -19,7 +22,7 @@ func readConfig(path string) (*config, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open file. path=%s", path)
 	}
-	defer configFile.Close()
+	defer closer.Handle(configFile, "config file")
 
 	var cfg *config
 	err = json.NewDecoder(configFile).Decode(&cfg)

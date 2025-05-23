@@ -2,13 +2,16 @@ package store
 
 import (
 	"fmt"
+	"sync"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/nakagami/firebirdsql"
 	"github.com/pkg/errors"
-	"sync"
+
+	"github.com/minlau/mdb-tool/internal/utils/closer"
 )
 
 type DataSource struct {
@@ -89,7 +92,7 @@ func OpenDatabase(c DatabaseConnConfig) (*sqlx.DB, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse pgx config. config=%#v", c)
 		}
-		//disable implicit prepared statement to enable execution of multiple queries at once
+		// disable implicit prepared statement to enable execution of multiple queries at once
 		connConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 
 		openDB := stdlib.OpenDB(*connConfig)
@@ -141,7 +144,7 @@ func GetDatabaseConfigsFromDataSource(dataSource DataSource) ([]DatabaseConfig, 
 		return nil, errors.Wrapf(err, "failed to open database. databaseConnConfig=%#v",
 			dataSource.DatabaseConnConfig)
 	}
-	defer db.Close()
+	defer closer.Handle(db, "database")
 
 	var databaseConfigs []DatabaseConfig
 	err = db.Select(&databaseConfigs, dataSource.Query)

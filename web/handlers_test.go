@@ -26,8 +26,8 @@ func BenchmarkRequest(b *testing.B) {
 					GroupName: "bench1",
 					Data: &store.QueryData{
 						Columns: []store.Column{
-							{"id", "id"},
-							{"name", "name"},
+							{Name: "id", FieldName: "id"},
+							{Name: "name", FieldName: "name"},
 						},
 						Rows: rows,
 					},

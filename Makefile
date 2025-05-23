@@ -16,7 +16,7 @@ test-go-excl-integration:
 
 .PHONY: lint-go
 lint-go:
-	golangci-lint ./...
+	golangci-lint run ./...
 
 .PHONY: security-go
 security-go:

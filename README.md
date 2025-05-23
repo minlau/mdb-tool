@@ -34,14 +34,13 @@ databases used for testing. To build and run locally you need(might work with lo
 Build js app(UI) with live reload. Built UI files are saved to `static` folder
 
 ```
-cd web/ui/js-app
-yarn install && yarn start 
+make build-js-ui-live-reload
 ```
 
 Build go executable without embedding UI files
 
 ```
-go build ./cmd/mdb-tool -tags=dev
+make build-go-dev
 ```
 
 #### Production
@@ -49,14 +48,13 @@ go build ./cmd/mdb-tool -tags=dev
 Build js app(UI). Build UI files are saved to `static` folder
 
 ```
-cd web/ui/js-app
-yarn install && yarn build 
+make build-js-ui
 ```
 
 Build go executable with embedded UI files
 
 ```
-go build ./cmd/mdb-tool
+make build-go
 ```
 
 ## How to run

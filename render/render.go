@@ -6,9 +6,9 @@ import (
 	"net/http"
 )
 
-type M map[string]interface{}
+type M map[string]any
 
-func JSON(w http.ResponseWriter, status int, v interface{}) {
+func JSON(w http.ResponseWriter, status int, v any) {
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
 	enc.SetEscapeHTML(true)

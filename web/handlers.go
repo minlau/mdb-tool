@@ -32,7 +32,7 @@ func query(store store.DatabaseStoreI) http.HandlerFunc {
 			return
 		}
 
-		var res interface{}
+		var res any
 		if req.GroupName == nil {
 			res = store.QueryMultipleDatabases(r.Context(), req.GroupType, req.Query)
 		} else {

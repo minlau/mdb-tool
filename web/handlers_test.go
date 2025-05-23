@@ -11,9 +11,9 @@ import (
 )
 
 func BenchmarkRequest(b *testing.B) {
-	var rows []map[string]interface{}
+	var rows []map[string]any
 	for i := 0; i < 100000; i++ {
-		rows = append(rows, map[string]interface{}{
+		rows = append(rows, map[string]any{
 			"id":   i,
 			"name": strconv.Itoa(i),
 		})

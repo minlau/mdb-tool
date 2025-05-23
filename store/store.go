@@ -290,14 +290,14 @@ func contains(arr []string, value string) bool {
 	return false
 }
 
-func customMapScan(r sqlx.ColScanner, columns []string) (map[string]interface{}, error) {
+func customMapScan(r sqlx.ColScanner, columns []string) (map[string]any, error) {
 	// ignore r.started, since we needn't use reflect for anything.
-	valuesArr := make([]interface{}, len(columns))
+	valuesArr := make([]any, len(columns))
 	for i := range valuesArr {
-		valuesArr[i] = new(interface{})
+		valuesArr[i] = new(any)
 	}
 
-	valuesMap := make(map[string]interface{})
+	valuesMap := make(map[string]any)
 
 	err := r.Scan(valuesArr...)
 	if err != nil {
@@ -305,11 +305,11 @@ func customMapScan(r sqlx.ColScanner, columns []string) (map[string]interface{},
 	}
 
 	for i, column := range columns {
-		switch (*(valuesArr[i].(*interface{}))).(type) {
+		switch (*(valuesArr[i].(*any))).(type) {
 		case []byte: //needed for mysql, some unsupported data types to convert byte array to string
-			valuesMap[column] = string((*(valuesArr[i].(*interface{}))).([]byte))
+			valuesMap[column] = string((*(valuesArr[i].(*any))).([]byte))
 		default:
-			valuesMap[column] = *(valuesArr[i].(*interface{}))
+			valuesMap[column] = *(valuesArr[i].(*any))
 		}
 	}
 

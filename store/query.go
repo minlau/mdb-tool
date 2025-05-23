@@ -11,8 +11,8 @@ type GroupQueryResult struct {
 }
 
 type QueryData struct {
-	Columns []Column                 `json:"columns"`
-	Rows    []map[string]interface{} `json:"rows"`
+	Columns []Column         `json:"columns"`
+	Rows    []map[string]any `json:"rows"`
 }
 
 // Column is used to store original column name(Name) and custom name(FieldName) for json response.
